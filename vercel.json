@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd justponto-web && npm install && npm run build",
+  "outputDirectory": "justponto-web/.next",
+  "installCommand": "cd justponto-web && npm install",
+  "framework": "nextjs"
+}
