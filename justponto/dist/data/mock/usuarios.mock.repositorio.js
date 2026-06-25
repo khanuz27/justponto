@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UsuariosMockRepositorio = void 0;
 const common_1 = require("@nestjs/common");
+const uuid_1 = require("uuid");
 const mock_seed_1 = require("./mock.seed");
 let UsuariosMockRepositorio = class UsuariosMockRepositorio {
     constructor() {
@@ -17,13 +18,26 @@ let UsuariosMockRepositorio = class UsuariosMockRepositorio {
         return this.usuarios.find((u) => u.id === id) ?? null;
     }
     async findByEmail(email) {
-        return this.usuarios.find((u) => u.email === email && u.ativo) ?? null;
+        return this.usuarios.find((u) => u.email === email) ?? null;
     }
     async findAll() {
-        return this.usuarios.filter((u) => u.ativo);
+        return [...this.usuarios];
     }
     async findByGerenteId(gerenteId) {
         return this.usuarios.filter((u) => u.gerenteId === gerenteId && u.ativo);
+    }
+    async create(dados) {
+        const novo = { ...dados, id: (0, uuid_1.v4)() };
+        this.usuarios.push(novo);
+        return novo;
+    }
+    async atualizarAtivo(id, ativo) {
+        const usuario = this.usuarios.find((u) => u.id === id);
+        if (!usuario)
+            return null;
+        usuario.ativo = ativo;
+        usuario.atualizadoEm = new Date();
+        return usuario;
     }
 };
 exports.UsuariosMockRepositorio = UsuariosMockRepositorio;

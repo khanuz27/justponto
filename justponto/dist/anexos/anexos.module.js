@@ -19,6 +19,7 @@ exports.AnexosModule = AnexosModule = __decorate([
         imports: [data_module_1.DataModule],
         controllers: [anexos_controller_1.AnexosController],
         providers: [anexos_service_1.AnexosService],
+        exports: [anexos_service_1.AnexosService],
     })
 ], AnexosModule);
 //# sourceMappingURL=anexos.module.js.map

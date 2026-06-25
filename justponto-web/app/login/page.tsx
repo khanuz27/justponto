@@ -34,7 +34,7 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <div className="login-logo-text">⏱ JustPonto</div>
+          <div className="login-logo-text">JustPonto</div>
           <div className="login-logo-sub">Controle de Justificativas de Ponto</div>
         </div>
 

@@ -1,10 +1,12 @@
 import { JustificativasService } from './justificativas.service';
+import { AnexosService } from '../anexos/anexos.service';
 import { CriarJustificativaDto } from './dto/criar-justificativa.dto';
 import { AvaliarJustificativaDto } from './dto/avaliar-justificativa.dto';
 import { StatusJustificativa } from '../common/enums/status-justificativa.enum';
 export declare class JustificativasController {
     private readonly service;
-    constructor(service: JustificativasService);
+    private readonly anexosService;
+    constructor(service: JustificativasService, anexosService: AnexosService);
     criar(dto: CriarJustificativaDto, usuario: any, arquivo?: Express.Multer.File): Promise<import("../common/entities").Justificativa>;
     listarMinhas(usuario: any): Promise<import("../common/entities").Justificativa[]>;
     listarPendentes(usuario: any): Promise<import("../common/entities").Justificativa[]>;

@@ -3,10 +3,15 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   getPendentesGerente,
   getTiposOcorrencia,
+  getUsuarios,
   avaliarJustificativa,
+  carregarMapaAnexos,
   Justificativa,
   TipoOcorrencia,
+  UsuarioCompleto,
+  Anexo,
 } from '@/lib/api';
+import { AnexoCell } from '@/components/AnexoCell';
 
 function formatData(d: string) {
   if (!d) return '—';
@@ -17,9 +22,10 @@ function formatData(d: string) {
 export default function GerentePage() {
   const [pendentes, setPendentes] = useState<Justificativa[]>([]);
   const [tipos, setTipos] = useState<TipoOcorrencia[]>([]);
+  const [usuarios, setUsuarios] = useState<UsuarioCompleto[]>([]);
+  const [anexos, setAnexos] = useState<Record<string, Anexo[]>>({});
   const [loading, setLoading] = useState(true);
 
-  // Modal de avaliação
   const [selecionada, setSelecionada] = useState<Justificativa | null>(null);
   const [statusAval, setStatusAval] = useState<'aprovada' | 'reprovada'>('aprovada');
   const [comentario, setComentario] = useState('');
@@ -30,14 +36,27 @@ export default function GerentePage() {
   const carregar = useCallback(async () => {
     setLoading(true);
     try {
-      const [p, t] = await Promise.all([getPendentesGerente(), getTiposOcorrencia()]);
+      const [p, t, u] = await Promise.all([
+        getPendentesGerente(),
+        getTiposOcorrencia(),
+        getUsuarios(),
+      ]);
       setPendentes(p);
       setTipos(t);
+      setUsuarios(u);
+      if (p.length > 0) {
+        const mapa = await carregarMapaAnexos(p.map(x => x.id));
+        setAnexos(mapa);
+      }
     } catch { /* ignore */ }
     finally { setLoading(false); }
   }, []);
 
   useEffect(() => { carregar(); }, [carregar]);
+
+  function nomeColaborador(id: string) {
+    return usuarios.find(u => u.id === id)?.nome ?? id.slice(0, 8) + '...';
+  }
 
   async function handleAvaliar(e: React.FormEvent) {
     e.preventDefault();
@@ -72,7 +91,6 @@ export default function GerentePage() {
 
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'var(--amber-100)' }}>⏳</div>
             <div className="stat-value" style={{ color: 'var(--amber-600)' }}>{pendentes.length}</div>
             <div className="stat-label">Aguardando avaliação</div>
           </div>
@@ -89,7 +107,6 @@ export default function GerentePage() {
             </div>
           ) : pendentes.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">✨</div>
               <div className="empty-state-title">Tudo em dia!</div>
               <div className="empty-state-text">Nenhuma justificativa pendente no momento.</div>
             </div>
@@ -99,10 +116,11 @@ export default function GerentePage() {
                 <thead>
                   <tr>
                     <th>Data</th>
-                    <th>Colaborador ID</th>
+                    <th>Colaborador</th>
                     <th>Motivo</th>
                     <th>Período</th>
                     <th>Descrição</th>
+                    <th>Anexo</th>
                     <th>Enviado em</th>
                     <th>Ação</th>
                   </tr>
@@ -113,7 +131,7 @@ export default function GerentePage() {
                     return (
                       <tr key={j.id}>
                         <td className="td-strong">{formatData(j.dataOcorrencia)}</td>
-                        <td className="td-muted" style={{ fontFamily: 'monospace' }}>{j.colaboradorId.slice(0, 8)}…</td>
+                        <td className="td-strong">{nomeColaborador(j.colaboradorId)}</td>
                         <td>{tipo?.nome ?? '—'}</td>
                         <td>{j.periodo === 'dia_inteiro' ? 'Dia inteiro' : `${j.horaInicio} – ${j.horaFim}`}</td>
                         <td style={{ maxWidth: 200 }}>
@@ -121,6 +139,7 @@ export default function GerentePage() {
                             {j.descricao}
                           </span>
                         </td>
+                        <td><AnexoCell anexos={anexos[j.id] ?? []} /></td>
                         <td className="td-muted">{formatData(j.criadoEm)}</td>
                         <td>
                           <button className="btn btn-primary btn-sm" onClick={() => abrir(j)}>
@@ -137,24 +156,26 @@ export default function GerentePage() {
         </div>
       </div>
 
-      {/* Modal avaliar */}
       {selecionada && (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setSelecionada(null); }}>
           <div className="modal">
             <div className="modal-header">
               <span className="modal-title">Avaliar Justificativa</span>
-              <button className="modal-close" onClick={() => setSelecionada(null)}>✕</button>
+              <button className="modal-close" onClick={() => setSelecionada(null)}>x</button>
             </div>
             <form onSubmit={handleAvaliar}>
               <div className="modal-body">
                 {erro && <div className="alert alert-error">{erro}</div>}
 
-                {/* Resumo */}
                 <div style={{ background: 'var(--slate-50)', borderRadius: 'var(--radius)', padding: '14px 16px', border: '1px solid var(--slate-200)' }}>
-                  <div style={{ fontSize: 12, color: 'var(--slate-500)', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <div style={{ fontSize: 11, color: 'var(--slate-500)', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     Resumo da justificativa
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--slate-400)' }}>Colaborador</div>
+                      <div style={{ fontWeight: 600 }}>{nomeColaborador(selecionada.colaboradorId)}</div>
+                    </div>
                     <div>
                       <div style={{ fontSize: 11, color: 'var(--slate-400)' }}>Data</div>
                       <div style={{ fontWeight: 600 }}>{formatData(selecionada.dataOcorrencia)}</div>
@@ -168,6 +189,12 @@ export default function GerentePage() {
                     <div style={{ fontSize: 11, color: 'var(--slate-400)' }}>Descrição</div>
                     <div style={{ color: 'var(--slate-700)' }}>{selecionada.descricao}</div>
                   </div>
+                  {(anexos[selecionada.id] ?? []).length > 0 && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ fontSize: 11, color: 'var(--slate-400)', marginBottom: 4 }}>Anexo(s)</div>
+                      <AnexoCell anexos={anexos[selecionada.id] ?? []} />
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group">
@@ -183,7 +210,7 @@ export default function GerentePage() {
                         fontWeight: 600, transition: 'all 0.15s',
                       }}>
                         <input type="radio" name="status" value={s} checked={statusAval === s} onChange={() => setStatusAval(s)} style={{ display: 'none' }} />
-                        {s === 'aprovada' ? '✅ Aprovar' : '❌ Reprovar'}
+                        {s === 'aprovada' ? 'Aprovar' : 'Reprovar'}
                       </label>
                     ))}
                   </div>
@@ -204,7 +231,7 @@ export default function GerentePage() {
               <div className="modal-footer">
                 <button type="button" className="btn btn-outline" onClick={() => setSelecionada(null)}>Cancelar</button>
                 <button type="submit" className={`btn ${statusAval === 'aprovada' ? 'btn-success' : 'btn-danger'}`} disabled={salvando}>
-                  {salvando ? <><span className="spinner" /> Salvando...</> : statusAval === 'aprovada' ? '✅ Confirmar Aprovação' : '❌ Confirmar Reprovação'}
+                  {salvando ? <><span className="spinner" /> Salvando...</> : statusAval === 'aprovada' ? 'Confirmar Aprovação' : 'Confirmar Reprovação'}
                 </button>
               </div>
             </form>

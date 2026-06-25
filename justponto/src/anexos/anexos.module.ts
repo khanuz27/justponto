@@ -7,5 +7,6 @@ import { DataModule } from '../data/data.module';
   imports: [DataModule],
   controllers: [AnexosController],
   providers: [AnexosService],
+  exports: [AnexosService],
 })
 export class AnexosModule {}

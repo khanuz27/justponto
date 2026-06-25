@@ -11,12 +11,13 @@ const common_1 = require("@nestjs/common");
 const justificativas_service_1 = require("./justificativas.service");
 const justificativas_controller_1 = require("./justificativas.controller");
 const data_module_1 = require("../data/data.module");
+const anexos_module_1 = require("../anexos/anexos.module");
 let JustificativasModule = class JustificativasModule {
 };
 exports.JustificativasModule = JustificativasModule;
 exports.JustificativasModule = JustificativasModule = __decorate([
     (0, common_1.Module)({
-        imports: [data_module_1.DataModule],
+        imports: [data_module_1.DataModule, anexos_module_1.AnexosModule],
         controllers: [justificativas_controller_1.JustificativasController],
         providers: [justificativas_service_1.JustificativasService],
         exports: [justificativas_service_1.JustificativasService],

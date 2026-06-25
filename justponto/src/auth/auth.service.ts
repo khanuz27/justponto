@@ -20,6 +20,10 @@ export class AuthService {
       throw new UnauthorizedException('Credenciais inválidas');
     }
 
+    if (!usuario.ativo) {
+      throw new UnauthorizedException('Conta desativada. Entre em contato com o RH.');
+    }
+
     const senhaValida = await bcrypt.compare(dto.senha, usuario.senhaHash);
     if (!senhaValida) {
       throw new UnauthorizedException('Credenciais inválidas');

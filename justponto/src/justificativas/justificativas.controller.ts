@@ -14,6 +14,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { JustificativasService } from './justificativas.service';
+import { AnexosService } from '../anexos/anexos.service';
 import { CriarJustificativaDto } from './dto/criar-justificativa.dto';
 import { AvaliarJustificativaDto } from './dto/avaliar-justificativa.dto';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -27,7 +28,10 @@ import { StatusJustificativa } from '../common/enums/status-justificativa.enum';
 @UseGuards(RolesGuard)
 @Controller('justificativas')
 export class JustificativasController {
-  constructor(private readonly service: JustificativasService) {}
+  constructor(
+    private readonly service: JustificativasService,
+    private readonly anexosService: AnexosService,
+  ) {}
 
   // ── Colaborador: criar ────────────────────────────────────────────────────
   @Post()
@@ -35,12 +39,19 @@ export class JustificativasController {
   @UseInterceptors(FileInterceptor('anexo'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Cria nova justificativa (colaborador)' })
-  criar(
+  async criar(
     @Body() dto: CriarJustificativaDto,
     @UsuarioAtual() usuario: any,
     @UploadedFile() arquivo?: Express.Multer.File,
   ) {
-    return this.service.criar(dto, usuario.id, !!arquivo);
+    const justificativa = await this.service.criar(dto, usuario.id, !!arquivo);
+
+    // Salva o arquivo vinculado à justificativa recém-criada
+    if (arquivo) {
+      await this.anexosService.upload(justificativa.id, arquivo);
+    }
+
+    return justificativa;
   }
 
   // ── Colaborador: ver as próprias ─────────────────────────────────────────
@@ -59,10 +70,10 @@ export class JustificativasController {
     return this.service.listarPendentes(usuario.id);
   }
 
-  // ── RH/Direção: listar todas com filtros ─────────────────────────────────
+  // ── RH/Direção/Gerente: listar todas com filtros ─────────────────────────
   @Get()
-  @Roles(PerfilUsuario.RH, PerfilUsuario.DIRECAO)
-  @ApiOperation({ summary: 'Lista todas as justificativas com filtros (RH/Direção)' })
+  @Roles(PerfilUsuario.GERENTE, PerfilUsuario.RH, PerfilUsuario.DIRECAO)
+  @ApiOperation({ summary: 'Lista todas as justificativas com filtros (Gerente/RH/Direção)' })
   @ApiQuery({ name: 'colaboradorId', required: false })
   @ApiQuery({ name: 'status', required: false, enum: StatusJustificativa })
   @ApiQuery({ name: 'dataInicio', required: false, example: '2024-06-01' })

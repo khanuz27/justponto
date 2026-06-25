@@ -12,10 +12,12 @@ const common_1 = require("@nestjs/common");
 let StorageMockService = StorageMockService_1 = class StorageMockService {
     constructor() {
         this.logger = new common_1.Logger(StorageMockService_1.name);
+        this.arquivos = new Map();
     }
     async upload(justificativaId, nomeArquivo, buffer, tipoMime) {
         const caminhoStorage = `mock/${justificativaId}/${Date.now()}-${nomeArquivo}`;
-        this.logger.log(`[MOCK-STORAGE] Upload simulado: ${caminhoStorage} (${buffer.length} bytes, ${tipoMime})`);
+        this.arquivos.set(caminhoStorage, { buffer, mime: tipoMime });
+        this.logger.log(`[MOCK-STORAGE] Upload salvo em memória: ${caminhoStorage} (${buffer.length} bytes, ${tipoMime})`);
         return { caminhoStorage };
     }
     async gerarUrlAssinada(caminhoStorage, expiracaoSegundos = 3600) {
@@ -24,7 +26,11 @@ let StorageMockService = StorageMockService_1 = class StorageMockService {
         return url;
     }
     async remover(caminhoStorage) {
-        this.logger.log(`[MOCK-STORAGE] Remoção simulada: ${caminhoStorage}`);
+        this.arquivos.delete(caminhoStorage);
+        this.logger.log(`[MOCK-STORAGE] Removido da memória: ${caminhoStorage}`);
+    }
+    obterArquivo(caminhoStorage) {
+        return this.arquivos.get(caminhoStorage);
     }
 };
 exports.StorageMockService = StorageMockService;

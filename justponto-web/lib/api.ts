@@ -38,6 +38,49 @@ export async function login(email: string, senha: string) {
   });
 }
 
+// ── Usuários ───────────────────────────────────────────
+export async function getUsuarios(): Promise<UsuarioCompleto[]> {
+  return request('/usuarios');
+}
+
+export async function criarUsuario(data: {
+  nome: string;
+  email: string;
+  senha: string;
+  perfil: 'colaborador' | 'gerente' | 'rh' | 'direcao';
+}): Promise<UsuarioCompleto> {
+  return request('/usuarios', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function atualizarStatusUsuario(id: string, ativo: boolean): Promise<UsuarioCompleto> {
+  return request(`/usuarios/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ ativo }),
+  });
+}
+
+// ── Anexos ────────────────────────────────────────────
+export async function getAnexosByJustificativa(justificativaId: string): Promise<Anexo[]> {
+  return request(`/anexos/justificativa/${justificativaId}`);
+}
+
+export async function getAnexoDownloadUrl(anexoId: string): Promise<{ url: string }> {
+  return request(`/anexos/${anexoId}/download`);
+}
+
+// Carrega todos os anexos para um conjunto de justificativas de uma vez
+export async function carregarMapaAnexos(
+  ids: string[]
+): Promise<Record<string, Anexo[]>> {
+  const resultados = await Promise.all(
+    ids.map(id => getAnexosByJustificativa(id).then(a => ({ id, a })).catch(() => ({ id, a: [] as Anexo[] })))
+  );
+  return Object.fromEntries(resultados.map(r => [r.id, r.a]));
+}
+
 // ── Tipos de Ocorrência ──────────────────────────────────────
 export async function getTiposOcorrencia(): Promise<TipoOcorrencia[]> {
   return request('/tipos-ocorrencia');
@@ -66,19 +109,46 @@ export async function getTodasJustificativas(params?: {
   return request(`/justificativas${qs.toString() ? '?' + qs : ''}`);
 }
 
-export async function criarJustificativa(data: {
-  tipoOcorrenciaId: string;
-  dataOcorrencia: string;
-  periodo?: string;
-  horaInicio?: string;
-  horaFim?: string;
-  descricao: string;
-}): Promise<Justificativa> {
-  return request('/justificativas', {
+export async function criarJustificativa(
+  data: {
+    tipoOcorrenciaId: string;
+    dataOcorrencia: string;
+    periodo?: string;
+    horaInicio?: string;
+    horaFim?: string;
+    descricao: string;
+  },
+  arquivo?: File | null,
+): Promise<Justificativa> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('justponto_token') : null;
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  let body: FormData | string;
+  if (arquivo) {
+    const form = new FormData();
+    Object.entries(data).forEach(([k, v]) => { if (v != null) form.append(k, v); });
+    form.append('anexo', arquivo);
+    body = form;
+    // Não definir Content-Type — o browser adiciona boundary automaticamente
+  } else {
+    headers['Content-Type'] = 'application/json';
+    body = JSON.stringify(data);
+  }
+
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/justificativas`, {
     method: 'POST',
-    body: JSON.stringify(data),
+    headers,
+    body,
   });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'Erro desconhecido' }));
+    throw new Error(err.message || `Erro ${res.status}`);
+  }
+  return res.json();
 }
+
 
 export async function avaliarJustificativa(
   id: string,
@@ -107,6 +177,16 @@ export interface Usuario {
   perfil: 'colaborador' | 'gerente' | 'rh' | 'direcao';
 }
 
+export interface UsuarioCompleto {
+  id: string;
+  nome: string;
+  email: string;
+  perfil: 'colaborador' | 'gerente' | 'rh' | 'direcao';
+  departamento?: string;
+  gerenteId?: string;
+  ativo: boolean;
+}
+
 export interface TipoOcorrencia {
   id: string;
   nome: string;
@@ -132,6 +212,16 @@ export interface Justificativa {
   atualizadoEm: string;
 }
 
+export interface Anexo {
+  id: string;
+  justificativaId: string;
+  nomeArquivo: string;
+  tipoMime: string;
+  tamanhoBytes: number;
+  caminhoStorage: string;
+  criadoEm: string;
+}
+
 export interface RelatorioResumo {
   totalGeral: number;
   totalPorStatus: { pendente: number; aprovada: number; reprovada: number };
@@ -146,3 +236,4 @@ export interface RelatorioResumo {
   }>;
   rankingMotivos: Array<{ tipoId: string; nome: string; total: number }>;
 }
+

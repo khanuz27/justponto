@@ -3,18 +3,21 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 
-const NAV: Record<string, Array<{ label: string; icon: string; path: string }>> = {
+const NAV: Record<string, Array<{ label: string; path: string }>> = {
   colaborador: [
-    { label: 'Minhas Justificativas', icon: '📋', path: '/dashboard/colaborador' },
+    { label: 'Minhas Justificativas', path: '/dashboard/colaborador' },
   ],
   gerente: [
-    { label: 'Pendentes da Equipe', icon: '⏳', path: '/dashboard/gerente' },
+    { label: 'Pendentes da Equipe', path: '/dashboard/gerente' },
+    { label: 'Funcionários', path: '/dashboard/funcionarios' },
   ],
   rh: [
-    { label: 'Todas as Justificativas', icon: '📁', path: '/dashboard/rh' },
+    { label: 'Todas as Justificativas', path: '/dashboard/rh' },
+    { label: 'Funcionários', path: '/dashboard/funcionarios' },
   ],
   direcao: [
-    { label: 'Painel Geral', icon: '📊', path: '/dashboard/direcao' },
+    { label: 'Painel Geral', path: '/dashboard/direcao' },
+    { label: 'Funcionários', path: '/dashboard/funcionarios' },
   ],
 };
 
@@ -44,7 +47,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const navItems = NAV[usuario.perfil] ?? [];
-  const initials = usuario.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+  const initials = usuario.nome.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase();
 
   function handleLogout() {
     signOut();
@@ -53,10 +56,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="app-shell">
-      {/* ── Sidebar ── */}
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <div className="sidebar-logo-text">⏱ JustPonto</div>
+          <div className="sidebar-logo-text">JustPonto</div>
           <div className="sidebar-logo-sub">Controle de Ponto</div>
         </div>
 
@@ -68,7 +70,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               href={item.path}
               className={`sidebar-item${pathname === item.path ? ' active' : ''}`}
             >
-              <span className="icon">{item.icon}</span>
               {item.label}
             </a>
           ))}
@@ -81,12 +82,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="user-name">{usuario.nome}</div>
               <div className="user-role">{LABELS[usuario.perfil]}</div>
             </div>
-            <button className="btn-logout" onClick={handleLogout} title="Sair">⎋</button>
+            <button className="btn-logout" onClick={handleLogout} title="Sair">Sair</button>
           </div>
         </div>
       </aside>
 
-      {/* ── Main ── */}
       <main className="main-content">{children}</main>
     </div>
   );

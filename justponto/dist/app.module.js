@@ -16,6 +16,9 @@ const tipos_ocorrencia_module_1 = require("./tipos-ocorrencia/tipos-ocorrencia.m
 const justificativas_module_1 = require("./justificativas/justificativas.module");
 const anexos_module_1 = require("./anexos/anexos.module");
 const relatorios_module_1 = require("./relatorios/relatorios.module");
+const usuarios_module_1 = require("./usuarios/usuarios.module");
+const mock_storage_module_1 = require("./mock-storage/mock-storage.module");
+const health_module_1 = require("./health/health.module");
 const jwt_auth_guard_1 = require("./common/guards/jwt-auth.guard");
 const roles_guard_1 = require("./common/guards/roles.guard");
 let AppModule = class AppModule {
@@ -31,6 +34,9 @@ exports.AppModule = AppModule = __decorate([
             justificativas_module_1.JustificativasModule,
             anexos_module_1.AnexosModule,
             relatorios_module_1.RelatoriosModule,
+            usuarios_module_1.UsuariosModule,
+            mock_storage_module_1.MockStorageModule,
+            health_module_1.HealthModule,
         ],
         providers: [
             { provide: core_1.APP_GUARD, useClass: jwt_auth_guard_1.JwtAuthGuard },

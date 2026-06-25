@@ -19,9 +19,21 @@ async function bootstrap() {
   );
 
   // ── CORS ──────────────────────────────────────────────────────────────────
+  const frontendUrl = config.get<string>('FRONTEND_URL', '');
+  const origensPermitidas = [
+    'http://localhost:3001',
+    'http://localhost:3000',
+    // Domínios Vercel (preview + produção)
+    /^https:\/\/.*\.vercel\.app$/,
+    // URL personalizada de produção (ex: https://seudominio.com.br)
+    ...(frontendUrl ? [frontendUrl] : []),
+  ];
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    origin: origensPermitidas,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // ── Swagger / OpenAPI em /docs ────────────────────────────────────────────
@@ -47,8 +59,8 @@ async function bootstrap() {
   const port = config.get<number>('PORT', 3000);
   await app.listen(port);
 
-  console.log(`\n🚀 JustPonto API rodando em: http://localhost:${port}`);
-  console.log(`📚 Documentação Swagger:     http://localhost:${port}/docs\n`);
+  console.log(`\nJustPonto API rodando em: http://localhost:${port}`);
+  console.log(`Documentacao Swagger:     http://localhost:${port}/docs\n`);
 }
 
 bootstrap();

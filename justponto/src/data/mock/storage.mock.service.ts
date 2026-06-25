@@ -5,6 +5,9 @@ import { IStorageService } from '../interfaces/storage.service.interface';
 export class StorageMockService implements IStorageService {
   private readonly logger = new Logger(StorageMockService.name);
 
+  // Armazena os arquivos em memória durante o ciclo de vida do servidor
+  private readonly arquivos = new Map<string, { buffer: Buffer; mime: string }>();
+
   async upload(
     justificativaId: string,
     nomeArquivo: string,
@@ -12,8 +15,9 @@ export class StorageMockService implements IStorageService {
     tipoMime: string,
   ): Promise<{ caminhoStorage: string }> {
     const caminhoStorage = `mock/${justificativaId}/${Date.now()}-${nomeArquivo}`;
+    this.arquivos.set(caminhoStorage, { buffer, mime: tipoMime });
     this.logger.log(
-      `[MOCK-STORAGE] Upload simulado: ${caminhoStorage} (${buffer.length} bytes, ${tipoMime})`,
+      `[MOCK-STORAGE] Upload salvo em memória: ${caminhoStorage} (${buffer.length} bytes, ${tipoMime})`,
     );
     return { caminhoStorage };
   }
@@ -25,6 +29,12 @@ export class StorageMockService implements IStorageService {
   }
 
   async remover(caminhoStorage: string): Promise<void> {
-    this.logger.log(`[MOCK-STORAGE] Remoção simulada: ${caminhoStorage}`);
+    this.arquivos.delete(caminhoStorage);
+    this.logger.log(`[MOCK-STORAGE] Removido da memória: ${caminhoStorage}`);
+  }
+
+  /** Retorna o arquivo armazenado (usado pelo controller de download) */
+  obterArquivo(caminhoStorage: string): { buffer: Buffer; mime: string } | undefined {
+    return this.arquivos.get(caminhoStorage);
   }
 }

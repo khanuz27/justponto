@@ -1,12 +1,17 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   getTodasJustificativas,
   getTiposOcorrencia,
+  getUsuarios,
   marcarAjusteLancado,
+  carregarMapaAnexos,
   Justificativa,
   TipoOcorrencia,
+  UsuarioCompleto,
+  Anexo,
 } from '@/lib/api';
+import { AnexoCell } from '@/components/AnexoCell';
 
 function formatData(d: string) {
   if (!d) return '—';
@@ -21,35 +26,52 @@ const STATUS_LABEL: Record<string, string> = {
 export default function RhPage() {
   const [justificativas, setJustificativas] = useState<Justificativa[]>([]);
   const [tipos, setTipos] = useState<TipoOcorrencia[]>([]);
+  const [usuarios, setUsuarios] = useState<UsuarioCompleto[]>([]);
+  const [anexos, setAnexos] = useState<Record<string, Anexo[]>>({});
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState('');
   const [filtroInicio, setFiltroInicio] = useState('');
   const [filtroFim, setFiltroFim] = useState('');
   const [sucesso, setSucesso] = useState('');
   const [lancandoId, setLancandoId] = useState<string | null>(null);
+  const [ajustesLancados, setAjustesLancados] = useState<Set<string>>(new Set());
 
   const carregar = useCallback(async () => {
     setLoading(true);
     try {
-      const [j, t] = await Promise.all([
-        getTodasJustificativas({ status: filtroStatus || undefined, dataInicio: filtroInicio || undefined, dataFim: filtroFim || undefined }),
+      const [j, t, u] = await Promise.all([
+        getTodasJustificativas({
+          status: filtroStatus || undefined,
+          dataInicio: filtroInicio || undefined,
+          dataFim: filtroFim || undefined,
+        }),
         getTiposOcorrencia(),
+        getUsuarios(),
       ]);
       setJustificativas(j);
       setTipos(t);
+      setUsuarios(u);
+      if (j.length > 0) {
+        const mapa = await carregarMapaAnexos(j.map(x => x.id));
+        setAnexos(mapa);
+      }
     } catch { /* ignore */ }
     finally { setLoading(false); }
   }, [filtroStatus, filtroInicio, filtroFim]);
 
   useEffect(() => { carregar(); }, [carregar]);
 
+  function nomeColaborador(id: string) {
+    return usuarios.find(u => u.id === id)?.nome ?? id.slice(0, 8) + '...';
+  }
+
   async function handleAjuste(id: string) {
     setLancandoId(id);
     try {
       await marcarAjusteLancado(id);
-      setSucesso('Ajuste marcado como lançado!');
+      setAjustesLancados(prev => new Set(prev).add(id));
+      setSucesso('Ajuste marcado como lançado com sucesso!');
       setTimeout(() => setSucesso(''), 4000);
-      carregar();
     } catch { /* ignore */ }
     finally { setLancandoId(null); }
   }
@@ -70,29 +92,24 @@ export default function RhPage() {
 
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'var(--slate-100)' }}>📁</div>
             <div className="stat-value">{justificativas.length}</div>
             <div className="stat-label">Total encontradas</div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'var(--amber-100)' }}>⏳</div>
             <div className="stat-value" style={{ color: 'var(--amber-600)' }}>{pendentes}</div>
             <div className="stat-label">Pendentes</div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'var(--green-100)' }}>✅</div>
             <div className="stat-value" style={{ color: 'var(--green-600)' }}>{aprovadas}</div>
             <div className="stat-label">Aprovadas</div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'var(--red-100)' }}>❌</div>
             <div className="stat-value" style={{ color: 'var(--red-600)' }}>{reprovadas}</div>
             <div className="stat-label">Reprovadas</div>
           </div>
         </div>
 
         <div className="card">
-          {/* Filtros */}
           <div className="filter-bar">
             <select className="form-control" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} style={{ minWidth: 140 }}>
               <option value="">Todos os status</option>
@@ -100,10 +117,10 @@ export default function RhPage() {
               <option value="aprovada">Aprovada</option>
               <option value="reprovada">Reprovada</option>
             </select>
-            <input type="date" className="form-control" value={filtroInicio} onChange={e => setFiltroInicio(e.target.value)} placeholder="Data início" />
-            <input type="date" className="form-control" value={filtroFim} onChange={e => setFiltroFim(e.target.value)} placeholder="Data fim" />
+            <input type="date" className="form-control" value={filtroInicio} onChange={e => setFiltroInicio(e.target.value)} />
+            <input type="date" className="form-control" value={filtroFim} onChange={e => setFiltroFim(e.target.value)} />
             <button className="btn btn-ghost btn-sm" onClick={() => { setFiltroStatus(''); setFiltroInicio(''); setFiltroFim(''); }}>
-              Limpar
+              Limpar filtros
             </button>
           </div>
 
@@ -113,7 +130,6 @@ export default function RhPage() {
             </div>
           ) : justificativas.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">🔍</div>
               <div className="empty-state-title">Nenhum resultado</div>
               <div className="empty-state-text">Tente ajustar os filtros.</div>
             </div>
@@ -128,7 +144,8 @@ export default function RhPage() {
                     <th>Período</th>
                     <th>Status</th>
                     <th>Avaliado em</th>
-                    <th>Comentário</th>
+                    <th>Anexo</th>
+                    <th>Observações Gerência</th>
                     <th>Ação RH</th>
                   </tr>
                 </thead>
@@ -138,25 +155,28 @@ export default function RhPage() {
                     return (
                       <tr key={j.id}>
                         <td className="td-strong">{formatData(j.dataOcorrencia)}</td>
-                        <td className="td-muted" style={{ fontFamily: 'monospace' }}>{j.colaboradorId.slice(0, 8)}…</td>
+                        <td className="td-strong">{nomeColaborador(j.colaboradorId)}</td>
                         <td>{tipo?.nome ?? '—'}</td>
                         <td>{j.periodo === 'dia_inteiro' ? 'Dia inteiro' : `${j.horaInicio} – ${j.horaFim}`}</td>
                         <td><span className={`badge badge-${j.status}`}>{STATUS_LABEL[j.status]}</span></td>
                         <td className="td-muted">{j.avaliadoEm ? formatData(j.avaliadoEm) : '—'}</td>
-                        <td style={{ maxWidth: 160 }}>
-                          {j.comentarioAvaliacao
-                            ? <span title={j.comentarioAvaliacao} style={{ cursor: 'help', textDecoration: 'underline dotted', color: 'var(--slate-500)', fontSize: 12 }}>Ver</span>
-                            : <span className="text-muted">—</span>}
+                        <td><AnexoCell anexos={anexos[j.id] ?? []} /></td>
+                        <td style={{ maxWidth: 200, color: j.comentarioAvaliacao ? 'var(--slate-700)' : 'var(--slate-400)', fontSize: 13 }}>
+                          <span title={j.comentarioAvaliacao ?? ''} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {j.comentarioAvaliacao ?? '—'}
+                          </span>
                         </td>
                         <td>
                           {j.status === 'aprovada' ? (
-                            <button
-                              className="btn btn-ghost btn-sm"
-                              onClick={() => handleAjuste(j.id)}
-                              disabled={lancandoId === j.id}
-                            >
-                              {lancandoId === j.id ? <span className="spinner" /> : '🗂 Lançar'}
-                            </button>
+                            ajustesLancados.has(j.id) ? (
+                              <button className="btn btn-sm" disabled style={{ background: 'var(--green-100)', color: 'var(--green-700)', border: '1px solid var(--green-200)', cursor: 'default', fontWeight: 600 }}>
+                                Ajuste lançado
+                              </button>
+                            ) : (
+                              <button className="btn btn-ghost btn-sm" onClick={() => handleAjuste(j.id)} disabled={lancandoId === j.id}>
+                                {lancandoId === j.id ? <span className="spinner" /> : 'Lançar ajuste'}
+                              </button>
+                            )
                           ) : <span className="text-muted">—</span>}
                         </td>
                       </tr>

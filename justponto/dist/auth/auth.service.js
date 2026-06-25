@@ -60,6 +60,9 @@ let AuthService = class AuthService {
         if (!usuario) {
             throw new common_1.UnauthorizedException('Credenciais inválidas');
         }
+        if (!usuario.ativo) {
+            throw new common_1.UnauthorizedException('Conta desativada. Entre em contato com o RH.');
+        }
         const senhaValida = await bcrypt.compare(dto.senha, usuario.senhaHash);
         if (!senhaValida) {
             throw new common_1.UnauthorizedException('Credenciais inválidas');

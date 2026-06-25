@@ -25,6 +25,13 @@ const historico_mock_repositorio_1 = require("./mock/historico.mock.repositorio"
 const notificacoes_mock_repositorio_1 = require("./mock/notificacoes.mock.repositorio");
 const storage_mock_service_1 = require("./mock/storage.mock.service");
 const email_fake_service_1 = require("./mock/email.fake.service");
+const usuarios_supabase_repositorio_1 = require("./supabase/usuarios.supabase.repositorio");
+const tipos_ocorrencia_supabase_repositorio_1 = require("./supabase/tipos-ocorrencia.supabase.repositorio");
+const justificativas_supabase_repositorio_1 = require("./supabase/justificativas.supabase.repositorio");
+const anexos_supabase_repositorio_1 = require("./supabase/anexos.supabase.repositorio");
+const historico_supabase_repositorio_1 = require("./supabase/historico.supabase.repositorio");
+const notificacoes_supabase_repositorio_1 = require("./supabase/notificacoes.supabase.repositorio");
+const storage_supabase_service_1 = require("./supabase/storage.supabase.service");
 function criarProvedor(token, mockClass, supabaseClass) {
     return {
         provide: token,
@@ -45,14 +52,15 @@ exports.DataModule = DataModule = __decorate([
     (0, common_1.Module)({
         imports: [config_1.ConfigModule],
         providers: [
-            criarProvedor(exports.USUARIOS_REPO, usuarios_mock_repositorio_1.UsuariosMockRepositorio),
-            criarProvedor(exports.TIPOS_OCORRENCIA_REPO, tipos_ocorrencia_mock_repositorio_1.TiposOcorrenciaMockRepositorio),
-            criarProvedor(exports.JUSTIFICATIVAS_REPO, justificativas_mock_repositorio_1.JustificativasMockRepositorio),
-            criarProvedor(exports.ANEXOS_REPO, anexos_mock_repositorio_1.AnexosMockRepositorio),
-            criarProvedor(exports.HISTORICO_REPO, historico_mock_repositorio_1.HistoricoMockRepositorio),
-            criarProvedor(exports.NOTIFICACOES_REPO, notificacoes_mock_repositorio_1.NotificacoesMockRepositorio),
-            criarProvedor(exports.STORAGE_SERVICE, storage_mock_service_1.StorageMockService),
+            criarProvedor(exports.USUARIOS_REPO, usuarios_mock_repositorio_1.UsuariosMockRepositorio, usuarios_supabase_repositorio_1.UsuariosSupabaseRepositorio),
+            criarProvedor(exports.TIPOS_OCORRENCIA_REPO, tipos_ocorrencia_mock_repositorio_1.TiposOcorrenciaMockRepositorio, tipos_ocorrencia_supabase_repositorio_1.TiposOcorrenciaSupabaseRepositorio),
+            criarProvedor(exports.JUSTIFICATIVAS_REPO, justificativas_mock_repositorio_1.JustificativasMockRepositorio, justificativas_supabase_repositorio_1.JustificativasSupabaseRepositorio),
+            criarProvedor(exports.ANEXOS_REPO, anexos_mock_repositorio_1.AnexosMockRepositorio, anexos_supabase_repositorio_1.AnexosSupabaseRepositorio),
+            criarProvedor(exports.HISTORICO_REPO, historico_mock_repositorio_1.HistoricoMockRepositorio, historico_supabase_repositorio_1.HistoricoSupabaseRepositorio),
+            criarProvedor(exports.NOTIFICACOES_REPO, notificacoes_mock_repositorio_1.NotificacoesMockRepositorio, notificacoes_supabase_repositorio_1.NotificacoesSupabaseRepositorio),
+            criarProvedor(exports.STORAGE_SERVICE, storage_mock_service_1.StorageMockService, storage_supabase_service_1.StorageSupabaseService),
             criarProvedor(exports.EMAIL_SERVICE, email_fake_service_1.EmailFakeService),
+            { provide: storage_mock_service_1.StorageMockService, useExisting: exports.STORAGE_SERVICE },
         ],
         exports: [
             exports.USUARIOS_REPO,
@@ -63,6 +71,7 @@ exports.DataModule = DataModule = __decorate([
             exports.NOTIFICACOES_REPO,
             exports.STORAGE_SERVICE,
             exports.EMAIL_SERVICE,
+            storage_mock_service_1.StorageMockService,
         ],
     })
 ], DataModule);

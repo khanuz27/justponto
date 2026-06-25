@@ -8,6 +8,9 @@ import { TiposOcorrenciaModule } from './tipos-ocorrencia/tipos-ocorrencia.modul
 import { JustificativasModule } from './justificativas/justificativas.module';
 import { AnexosModule } from './anexos/anexos.module';
 import { RelatoriosModule } from './relatorios/relatorios.module';
+import { UsuariosModule } from './usuarios/usuarios.module';
+import { MockStorageModule } from './mock-storage/mock-storage.module';
+import { HealthModule } from './health/health.module';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -21,6 +24,9 @@ import { RolesGuard } from './common/guards/roles.guard';
     JustificativasModule,
     AnexosModule,
     RelatoriosModule,
+    UsuariosModule,
+    MockStorageModule,
+    HealthModule,
   ],
   providers: [
     // JwtAuthGuard global: bloqueia toda rota sem token (exceto @Public)
