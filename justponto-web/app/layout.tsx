@@ -3,7 +3,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/auth';
 
 export const metadata: Metadata = {
-  title: 'JustPonto — Controle de Justificativas',
+  title: 'F2J Solucoes — Controle de Justificativas',
   description: 'Sistema de gestão de justificativas de não registro de ponto',
 };
 

@@ -58,8 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <div className="sidebar-logo-text">JustPonto</div>
-          <div className="sidebar-logo-sub">Controle de Ponto</div>
+          <img src="/logo-f2j.png" alt="F2J Solucoes" />
         </div>
 
         <nav className="sidebar-nav">

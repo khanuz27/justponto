@@ -41,7 +41,7 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <div className="login-logo-text">JustPonto</div>
+          <img src="/logo-f2j.png" alt="F2J Solucoes" />
           <div className="login-logo-sub">Controle de Justificativas de Ponto</div>
         </div>
 
