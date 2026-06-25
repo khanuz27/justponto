@@ -1,0 +1,22 @@
+import { Usuario } from '../../common/entities/usuario.entity';
+import { TipoOcorrencia } from '../../common/entities/tipo-ocorrencia.entity';
+import { Justificativa } from '../../common/entities/justificativa.entity';
+export declare const SEED_IDS: {
+    direcao: string;
+    rh: string;
+    gerente: string;
+    colaborador: string;
+    tipo_atestado: string;
+    tipo_consulta: string;
+    tipo_transporte: string;
+    tipo_esquecimento: string;
+    tipo_falha: string;
+    tipo_externo: string;
+    tipo_licenca: string;
+    tipo_outros: string;
+    just1: string;
+    just2: string;
+};
+export declare const USUARIOS_SEED: Usuario[];
+export declare const TIPOS_SEED: TipoOcorrencia[];
+export declare const JUSTIFICATIVAS_SEED: Justificativa[];
