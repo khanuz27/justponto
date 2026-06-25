@@ -479,7 +479,7 @@ select.form-control { cursor: pointer; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #F5A623 0%, #F96228 45%, #E8301A 100%);
+  background: linear-gradient(135deg, #FFE0C2 0%, #FFBE8A 40%, #FFA05A 100%);
   padding: 20px;
 }
 
