@@ -19,8 +19,15 @@ export default function LoginPage() {
       await signIn(email, senha);
       const u = JSON.parse(localStorage.getItem('justponto_usuario') || '{}');
       router.replace(`/dashboard/${u.perfil}`);
-    } catch {
-      setErro('E-mail ou senha inválidos. Verifique os dados e tente novamente.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      if (!msg || msg.includes('fetch') || msg.includes('network') || msg.includes('Failed')) {
+        setErro('Nao foi possivel conectar ao servidor. Verifique sua conexao e tente novamente.');
+      } else if (msg.includes('desativada')) {
+        setErro('Conta desativada. Entre em contato com o RH.');
+      } else {
+        setErro('E-mail ou senha invalidos. Verifique os dados e tente novamente.');
+      }
     } finally {
       setLoading(false);
     }
