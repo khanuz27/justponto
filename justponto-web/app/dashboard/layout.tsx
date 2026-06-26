@@ -1,5 +1,5 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 
@@ -32,10 +32,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { usuario, loading, signOut } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !usuario) router.replace('/login');
   }, [usuario, loading, router]);
+
+  // Close sidebar on route change
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
 
   if (loading || !usuario) {
     return (
@@ -56,9 +62,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      {/* Mobile hamburger */}
+      <button className="mobile-menu-btn" onClick={() => setSidebarOpen(true)} aria-label="Abrir menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+
+      {/* Overlay */}
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
+
+      <aside className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`}>
         <div className="sidebar-logo">
           <img src="/logo-f2j.png" alt="F2J Solucoes" />
+          <button className="sidebar-close-btn" onClick={() => setSidebarOpen(false)} aria-label="Fechar menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
         </div>
 
         <nav className="sidebar-nav">
