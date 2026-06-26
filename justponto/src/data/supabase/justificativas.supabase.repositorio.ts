@@ -6,6 +6,7 @@ import {
   FiltroJustificativas,
 } from '../interfaces/justificativas.repositorio.interface';
 import { Justificativa } from '../../common/entities/justificativa.entity';
+import { JustificativaOcorrencia } from '../../common/entities/justificativa-ocorrencia.entity';
 import { StatusJustificativa } from '../../common/enums/status-justificativa.enum';
 import { Periodo } from '../../common/enums/periodo.enum';
 import { createSupabaseClient } from './supabase.client';
@@ -28,12 +29,23 @@ export class JustificativasSupabaseRepositorio implements IJustificativasReposit
       horaInicio: row.hora_inicio ?? undefined,
       horaFim: row.hora_fim ?? undefined,
       descricao: row.descricao,
+      motivoOutros: row.motivo_outros ?? undefined,
       status: row.status as StatusJustificativa,
       aprovadorId: row.aprovador_id ?? undefined,
       comentarioAvaliacao: row.comentario_avaliacao ?? undefined,
       avaliadoEm: row.avaliado_em ? new Date(row.avaliado_em) : undefined,
       criadoEm: new Date(row.criado_em),
       atualizadoEm: new Date(row.atualizado_em),
+    };
+  }
+
+  private mapOcorrenciaRow(row: any): JustificativaOcorrencia {
+    return {
+      id: row.id,
+      justificativaId: row.justificativa_id,
+      tipoOcorrencia: row.tipo_ocorrencia,
+      horarioCorreto: row.horario_correto ?? undefined,
+      criadoEm: new Date(row.criado_em),
     };
   }
 
@@ -53,7 +65,6 @@ export class JustificativasSupabaseRepositorio implements IJustificativasReposit
   }
 
   async findPendentesByGerenteId(gerenteId: string): Promise<Justificativa[]> {
-    // Busca colaboradores do gerente e depois suas justificativas pendentes
     const { data: colaboradores } = await this.db
       .from('usuarios').select('id').eq('gerente_id', gerenteId).eq('ativo', true);
     if (!colaboradores || colaboradores.length === 0) return [];
@@ -87,6 +98,7 @@ export class JustificativasSupabaseRepositorio implements IJustificativasReposit
         hora_inicio:          dados.horaInicio ?? null,
         hora_fim:             dados.horaFim ?? null,
         descricao:            dados.descricao,
+        motivo_outros:        dados.motivoOutros ?? null,
         status:               dados.status,
         aprovador_id:         dados.aprovadorId ?? null,
         comentario_avaliacao: dados.comentarioAvaliacao ?? null,
@@ -114,5 +126,32 @@ export class JustificativasSupabaseRepositorio implements IJustificativasReposit
       .from('justificativas').update({ ajuste_lancado: lancado }).eq('id', id).select().maybeSingle();
     if (error || !data) return null;
     return this.mapRow(data);
+  }
+
+  // ── Ocorrências ────────────────────────────────────────────────
+  async createOcorrencias(
+    justificativaId: string,
+    ocorrencias: Array<{ tipo: string; horarioCorreto?: string }>,
+  ): Promise<JustificativaOcorrencia[]> {
+    if (!ocorrencias || ocorrencias.length === 0) return [];
+
+    const rows = ocorrencias.map(o => ({
+      justificativa_id: justificativaId,
+      tipo_ocorrencia: o.tipo,
+      horario_correto: o.horarioCorreto ?? null,
+    }));
+
+    const { data, error } = await this.db
+      .from('justificativa_ocorrencias').insert(rows).select();
+    if (error) throw new Error(error.message);
+    return (data ?? []).map(r => this.mapOcorrenciaRow(r));
+  }
+
+  async findOcorrenciasByJustificativaId(justificativaId: string): Promise<JustificativaOcorrencia[]> {
+    const { data } = await this.db
+      .from('justificativa_ocorrencias').select('*')
+      .eq('justificativa_id', justificativaId)
+      .order('criado_em', { ascending: true });
+    return (data ?? []).map(r => this.mapOcorrenciaRow(r));
   }
 }

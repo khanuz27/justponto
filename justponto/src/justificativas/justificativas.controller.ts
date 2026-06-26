@@ -33,20 +33,25 @@ export class JustificativasController {
     private readonly anexosService: AnexosService,
   ) {}
 
-  // ── Colaborador: criar ────────────────────────────────────────────────────
+  // ── Colaborador: criar ────────────────────────────────────────
   @Post()
   @Roles(PerfilUsuario.COLABORADOR)
   @UseInterceptors(FileInterceptor('anexo'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Cria nova justificativa (colaborador)' })
   async criar(
-    @Body() dto: CriarJustificativaDto,
+    @Body() rawDto: any,
     @UsuarioAtual() usuario: any,
     @UploadedFile() arquivo?: Express.Multer.File,
   ) {
+    // Quando vem como FormData, o campo ocorrencias chega como string JSON
+    const dto: CriarJustificativaDto = { ...rawDto };
+    if (typeof dto.ocorrencias === 'string') {
+      try { dto.ocorrencias = JSON.parse(dto.ocorrencias); } catch { dto.ocorrencias = []; }
+    }
+
     const justificativa = await this.service.criar(dto, usuario.id, !!arquivo);
 
-    // Salva o arquivo vinculado à justificativa recém-criada
     if (arquivo) {
       await this.anexosService.upload(justificativa.id, arquivo);
     }
@@ -54,7 +59,7 @@ export class JustificativasController {
     return justificativa;
   }
 
-  // ── Colaborador: ver as próprias ─────────────────────────────────────────
+  // ── Colaborador: ver as próprias ──────────────────────────────
   @Get('minhas')
   @Roles(PerfilUsuario.COLABORADOR)
   @ApiOperation({ summary: 'Lista as justificativas do colaborador logado' })
@@ -62,7 +67,7 @@ export class JustificativasController {
     return this.service.listarMinhas(usuario.id);
   }
 
-  // ── Gerente: ver pendentes da equipe ─────────────────────────────────────
+  // ── Gerente: ver pendentes da equipe ──────────────────────────
   @Get('pendentes')
   @Roles(PerfilUsuario.GERENTE)
   @ApiOperation({ summary: 'Lista pendentes da equipe do gerente logado' })
@@ -70,7 +75,7 @@ export class JustificativasController {
     return this.service.listarPendentes(usuario.id);
   }
 
-  // ── RH/Direção/Gerente: listar todas com filtros ─────────────────────────
+  // ── RH/Direção/Gerente: listar todas com filtros ──────────────
   @Get()
   @Roles(PerfilUsuario.GERENTE, PerfilUsuario.RH, PerfilUsuario.DIRECAO)
   @ApiOperation({ summary: 'Lista todas as justificativas com filtros (Gerente/RH/Direção)' })
@@ -87,7 +92,18 @@ export class JustificativasController {
     return this.service.listarTodas({ colaboradorId, status, dataInicio, dataFim });
   }
 
-  // ── Gerente/Direção: avaliar ──────────────────────────────────────────────
+  // ── Detalhe de uma justificativa ──────────────────────────────
+  @Get(':id')
+  @Roles(PerfilUsuario.COLABORADOR, PerfilUsuario.GERENTE, PerfilUsuario.RH, PerfilUsuario.DIRECAO)
+  @ApiOperation({ summary: 'Detalhe completo de uma justificativa' })
+  detalhe(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UsuarioAtual() usuario: any,
+  ) {
+    return this.service.detalhe(id, usuario);
+  }
+
+  // ── Gerente/Direção: avaliar ──────────────────────────────────
   @Patch(':id/avaliar')
   @Roles(PerfilUsuario.GERENTE, PerfilUsuario.DIRECAO)
   @ApiOperation({ summary: 'Aprova ou reprova uma justificativa (gerente/direção)' })
@@ -99,7 +115,7 @@ export class JustificativasController {
     return this.service.avaliar(id, dto, usuario);
   }
 
-  // ── RH: marcar ajuste lançado ─────────────────────────────────────────────
+  // ── RH: marcar ajuste lançado ─────────────────────────────────
   @Patch(':id/ajuste-lancado')
   @Roles(PerfilUsuario.RH)
   @ApiOperation({ summary: 'Marca ajuste de ponto como lançado (RH)' })

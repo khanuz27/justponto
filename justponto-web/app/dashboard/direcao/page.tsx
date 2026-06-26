@@ -13,6 +13,7 @@ import {
   Anexo,
 } from '@/lib/api';
 import { AnexoCell } from '@/components/AnexoCell';
+import { JustificativaDetalheModal } from '@/components/JustificativaDetalhe';
 
 function formatData(d: string) {
   if (!d) return '—';
@@ -32,6 +33,7 @@ export default function DirecaoPage() {
   const [anexos, setAnexos] = useState<Record<string, Anexo[]>>({});
   const [loading, setLoading] = useState(true);
   const [aba, setAba] = useState<'resumo' | 'lista'>('resumo');
+  const [detalheId, setDetalheId] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -58,6 +60,17 @@ export default function DirecaoPage() {
 
   function nomeColaborador(id: string) {
     return usuarios.find(u => u.id === id)?.nome ?? id.slice(0, 8) + '...';
+  }
+
+  function nomeAprovador(id?: string) {
+    if (!id) return '--';
+    return usuarios.find(u => u.id === id)?.nome ?? '--';
+  }
+
+  function formatDataHora(d?: string) {
+    if (!d) return '--';
+    const dt = new Date(d);
+    return `${dt.toLocaleDateString('pt-BR')} ${dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
   }
 
   if (loading) return (
@@ -239,11 +252,12 @@ export default function DirecaoPage() {
                       <th>Data</th>
                       <th>Colaborador</th>
                       <th>Motivo</th>
-                      <th>Período</th>
+                      <th>Periodo</th>
                       <th>Status</th>
-                      <th>Avaliado em</th>
+                      <th>Aprovado por</th>
+                      <th>Data/Hora Aprovacao</th>
                       <th>Anexo</th>
-                      <th>Observações Gerência</th>
+                      <th>Acao</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -256,12 +270,11 @@ export default function DirecaoPage() {
                           <td>{tipo?.nome ?? '—'}</td>
                           <td>{j.periodo === 'dia_inteiro' ? 'Dia inteiro' : `${j.horaInicio} – ${j.horaFim}`}</td>
                           <td><span className={`badge badge-${j.status}`}>{STATUS_LABEL[j.status]}</span></td>
-                          <td className="td-muted">{j.avaliadoEm ? formatData(j.avaliadoEm) : '—'}</td>
+                          <td className="td-strong" style={{ fontSize: 13 }}>{nomeAprovador(j.aprovadorId)}</td>
+                          <td className="td-muted" style={{ fontSize: 12 }}>{formatDataHora(j.avaliadoEm)}</td>
                           <td><AnexoCell anexos={anexos[j.id] ?? []} /></td>
-                          <td style={{ maxWidth: 200, color: j.comentarioAvaliacao ? 'var(--slate-700)' : 'var(--slate-400)', fontSize: 13 }}>
-                            <span title={j.comentarioAvaliacao ?? ''} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {j.comentarioAvaliacao ?? '—'}
-                            </span>
+                          <td>
+                            <button className="btn btn-outline btn-sm" onClick={() => setDetalheId(j.id)}>Ver</button>
                           </td>
                         </tr>
                       );
@@ -273,6 +286,10 @@ export default function DirecaoPage() {
           </div>
         )}
       </div>
+
+      {detalheId && (
+        <JustificativaDetalheModal justificativaId={detalheId} onClose={() => setDetalheId(null)} />
+      )}
     </>
   );
 }

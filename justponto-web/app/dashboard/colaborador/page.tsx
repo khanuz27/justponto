@@ -11,13 +11,22 @@ import {
   Anexo,
 } from '@/lib/api';
 import { AnexoCell } from '@/components/AnexoCell';
+import { JustificativaDetalheModal } from '@/components/JustificativaDetalhe';
 
 const STATUS_LABEL: Record<string, string> = {
   pendente: 'Pendente', aprovada: 'Aprovada', reprovada: 'Reprovada',
 };
 
+const OCORRENCIA_TIPOS = [
+  { key: 'entrada', label: 'Entrada' },
+  { key: 'saida_almoco', label: 'Saida Almoco' },
+  { key: 'retorno_almoco', label: 'Retorno Almoco' },
+  { key: 'saida', label: 'Saida' },
+  { key: 'dia_inteiro', label: 'Dia Inteiro' },
+] as const;
+
 function formatData(d: string) {
-  if (!d) return '—';
+  if (!d) return '--';
   const [y, m, day] = d.split('T')[0].split('-');
   return `${day}/${m}/${y}`;
 }
@@ -29,18 +38,22 @@ export default function ColaboradorPage() {
   const [anexos, setAnexos] = useState<Record<string, Anexo[]>>({});
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [detalheId, setDetalheId] = useState<string | null>(null);
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
   const [salvando, setSalvando] = useState(false);
 
+  // Form state
   const [tipoId, setTipoId] = useState('');
   const [dataOcorrencia, setDataOcorrencia] = useState('');
-  const [periodo, setPeriodo] = useState('dia_inteiro');
-  const [horaInicio, setHoraInicio] = useState('');
-  const [horaFim, setHoraFim] = useState('');
   const [descricao, setDescricao] = useState('');
+  const [motivoOutros, setMotivoOutros] = useState('');
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
+
+  // Ocorrências (checkboxes)
+  const [ocorrenciasSelecionadas, setOcorrenciasSelecionadas] = useState<Record<string, boolean>>({});
+  const [ocorrenciasHorarios, setOcorrenciasHorarios] = useState<Record<string, string>>({});
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -58,18 +71,87 @@ export default function ColaboradorPage() {
 
   useEffect(() => { carregar(); }, [carregar]);
 
+  function handleOcorrenciaToggle(key: string) {
+    if (key === 'dia_inteiro') {
+      // Dia inteiro é exclusivo
+      const novoEstado = !ocorrenciasSelecionadas['dia_inteiro'];
+      if (novoEstado) {
+        // Desmarca tudo e marca só dia_inteiro
+        setOcorrenciasSelecionadas({ dia_inteiro: true });
+        setOcorrenciasHorarios({});
+      } else {
+        setOcorrenciasSelecionadas({});
+      }
+    } else {
+      // Desmarca dia_inteiro se estiver marcado
+      setOcorrenciasSelecionadas(prev => {
+        const next = { ...prev };
+        delete next['dia_inteiro'];
+        next[key] = !prev[key];
+        if (!next[key]) {
+          delete next[key];
+          setOcorrenciasHorarios(h => { const n = { ...h }; delete n[key]; return n; });
+        }
+        return next;
+      });
+    }
+  }
+
+  function handleHorarioChange(key: string, value: string) {
+    setOcorrenciasHorarios(prev => ({ ...prev, [key]: value }));
+  }
+
+  const isDiaInteiro = !!ocorrenciasSelecionadas['dia_inteiro'];
+  const tipoSelecionado = tipos.find(t => t.id === tipoId);
+  const isOutros = tipoSelecionado?.nome?.toLowerCase() === 'outros';
+
   async function handleCriar(e: React.FormEvent) {
     e.preventDefault();
     setErro(''); setSucesso(''); setSalvando(true);
+
+    // Validações
+    const keys = Object.keys(ocorrenciasSelecionadas).filter(k => ocorrenciasSelecionadas[k]);
+    if (keys.length === 0) {
+      setErro('Selecione pelo menos uma ocorrencia.');
+      setSalvando(false);
+      return;
+    }
+
+    // Verificar horários preenchidos (exceto dia_inteiro)
+    if (!isDiaInteiro) {
+      for (const k of keys) {
+        if (!ocorrenciasHorarios[k]) {
+          const label = OCORRENCIA_TIPOS.find(o => o.key === k)?.label || k;
+          setErro(`Informe o horario correto para "${label}".`);
+          setSalvando(false);
+          return;
+        }
+      }
+    }
+
+    if (isOutros && !motivoOutros.trim()) {
+      setErro('Ao selecionar "Outros", e obrigatorio descrever o motivo.');
+      setSalvando(false);
+      return;
+    }
+
+    const ocorrencias = keys.map(k => ({
+      tipo: k,
+      horarioCorreto: k === 'dia_inteiro' ? undefined : ocorrenciasHorarios[k],
+    }));
+
+    // Derivar periodo
+    const periodo = isDiaInteiro ? 'dia_inteiro' : 'parcial';
+
     try {
       await criarJustificativa(
         {
           tipoOcorrenciaId: tipoId,
           dataOcorrencia,
           periodo,
-          horaInicio: periodo === 'parcial' ? horaInicio : undefined,
-          horaFim: periodo === 'parcial' ? horaFim : undefined,
           descricao,
+          motivoOutros: isOutros ? motivoOutros : undefined,
+          ocorrencias,
         },
         arquivo,
       );
@@ -83,14 +165,13 @@ export default function ColaboradorPage() {
   }
 
   function resetForm() {
-    setTipoId(''); setDataOcorrencia(''); setPeriodo('dia_inteiro');
-    setHoraInicio(''); setHoraFim(''); setDescricao(''); setErro('');
-    setArquivo(null); setDragOver(false);
+    setTipoId(''); setDataOcorrencia(''); setDescricao(''); setErro('');
+    setMotivoOutros(''); setArquivo(null); setDragOver(false);
+    setOcorrenciasSelecionadas({}); setOcorrenciasHorarios({});
   }
 
   function abrirModal() { resetForm(); setSucesso(''); setShowModal(true); }
 
-  const tipoSelecionado = tipos.find(t => t.id === tipoId);
   const pendentes  = justificativas.filter(j => j.status === 'pendente').length;
   const aprovadas  = justificativas.filter(j => j.status === 'aprovada').length;
   const reprovadas = justificativas.filter(j => j.status === 'reprovada').length;
@@ -99,7 +180,7 @@ export default function ColaboradorPage() {
     <>
       <div className="page-header">
         <div className="page-title">Minhas Justificativas</div>
-        <div className="page-subtitle">Olá, {usuario?.nome}! Acompanhe e registre suas justificativas.</div>
+        <div className="page-subtitle">Ola, {usuario?.nome}! Acompanhe e registre suas justificativas.</div>
       </div>
 
       <div className="page-body">
@@ -126,7 +207,7 @@ export default function ColaboradorPage() {
 
         <div className="card">
           <div className="card-header">
-            <span className="card-title">Histórico de Justificativas</span>
+            <span className="card-title">Historico de Justificativas</span>
             <button className="btn btn-primary btn-sm" onClick={abrirModal}>
               + Nova Justificativa
             </button>
@@ -139,7 +220,7 @@ export default function ColaboradorPage() {
           ) : justificativas.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-title">Nenhuma justificativa ainda</div>
-              <div className="empty-state-text">Clique em "Nova Justificativa" para começar.</div>
+              <div className="empty-state-text">Clique em "Nova Justificativa" para comecar.</div>
             </div>
           ) : (
             <div className="table-wrap">
@@ -148,11 +229,12 @@ export default function ColaboradorPage() {
                   <tr>
                     <th>Data</th>
                     <th>Motivo</th>
-                    <th>Período</th>
-                    <th>Descrição</th>
+                    <th>Periodo</th>
+                    <th>Descricao</th>
                     <th>Status</th>
                     <th>Anexo</th>
-                    <th>Observações Gerência</th>
+                    <th>Obs. Gerencia</th>
+                    <th>Acao</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -161,8 +243,8 @@ export default function ColaboradorPage() {
                     return (
                       <tr key={j.id}>
                         <td className="td-strong">{formatData(j.dataOcorrencia)}</td>
-                        <td>{tipo?.nome ?? '—'}</td>
-                        <td>{j.periodo === 'dia_inteiro' ? 'Dia inteiro' : `${j.horaInicio} – ${j.horaFim}`}</td>
+                        <td>{tipo?.nome ?? '--'}</td>
+                        <td>{j.periodo === 'dia_inteiro' ? 'Dia inteiro' : `${j.horaInicio} - ${j.horaFim}`}</td>
                         <td style={{ maxWidth: 200 }}>
                           <span title={j.descricao} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {j.descricao}
@@ -174,8 +256,13 @@ export default function ColaboradorPage() {
                         <td><AnexoCell anexos={anexos[j.id] ?? []} /></td>
                         <td style={{ maxWidth: 200, color: j.comentarioAvaliacao ? 'var(--slate-700)' : 'var(--slate-400)', fontSize: 13 }}>
                           <span title={j.comentarioAvaliacao ?? ''} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {j.comentarioAvaliacao ?? '—'}
+                            {j.comentarioAvaliacao ?? '--'}
                           </span>
+                        </td>
+                        <td>
+                          <button className="btn btn-outline btn-sm" onClick={() => setDetalheId(j.id)}>
+                            Ver
+                          </button>
                         </td>
                       </tr>
                     );
@@ -187,9 +274,15 @@ export default function ColaboradorPage() {
         </div>
       </div>
 
+      {/* Modal Detalhe */}
+      {detalheId && (
+        <JustificativaDetalheModal justificativaId={detalheId} onClose={() => setDetalheId(null)} />
+      )}
+
+      {/* Modal Nova Justificativa */}
       {showModal && (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
-          <div className="modal">
+          <div className="modal" style={{ maxWidth: 580 }}>
             <div className="modal-header">
               <span className="modal-title">Nova Justificativa</span>
               <button className="modal-close" onClick={() => setShowModal(false)}>x</button>
@@ -198,9 +291,62 @@ export default function ColaboradorPage() {
               <div className="modal-body">
                 {erro && <div className="alert alert-error">{erro}</div>}
 
+                {/* Bloco 1 — Ocorrências */}
                 <div className="form-group">
-                  <label className="form-label">Motivo *</label>
-                  <select className="form-control" value={tipoId} onChange={e => setTipoId(e.target.value)} required>
+                  <label className="form-label">Ocorrencia *</label>
+                  <div style={{ fontSize: 12, color: 'var(--slate-500)', marginBottom: 8 }}>
+                    Selecione os horarios que esta justificando e informe o horario correto.
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {OCORRENCIA_TIPOS.map(o => {
+                      const checked = !!ocorrenciasSelecionadas[o.key];
+                      const disabled = o.key !== 'dia_inteiro' && isDiaInteiro;
+                      return (
+                        <div key={o.key} style={{
+                          display: 'flex', alignItems: 'center', gap: 12,
+                          background: checked ? 'var(--blue-50)' : 'var(--slate-50)',
+                          border: `1.5px solid ${checked ? 'var(--blue-300)' : 'var(--slate-200)'}`,
+                          borderRadius: 'var(--radius)', padding: '10px 14px',
+                          opacity: disabled ? 0.4 : 1,
+                          transition: 'all 0.15s',
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={disabled}
+                            onChange={() => handleOcorrenciaToggle(o.key)}
+                            style={{ width: 18, height: 18, accentColor: 'var(--blue-600)', cursor: disabled ? 'not-allowed' : 'pointer' }}
+                          />
+                          <span style={{ flex: 1, fontWeight: 600, fontSize: 13, color: checked ? 'var(--blue-700)' : 'var(--slate-700)' }}>
+                            {o.label}
+                          </span>
+                          {checked && o.key !== 'dia_inteiro' && (
+                            <input
+                              type="time"
+                              className="form-control"
+                              value={ocorrenciasHorarios[o.key] || ''}
+                              onChange={e => handleHorarioChange(o.key, e.target.value)}
+                              placeholder="Horario correto"
+                              style={{ width: 130, fontSize: 13, padding: '6px 10px' }}
+                              required
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Bloco 2 — Data */}
+                <div className="form-group">
+                  <label className="form-label">Data da ocorrencia *</label>
+                  <input type="date" className="form-control" value={dataOcorrencia} onChange={e => setDataOcorrencia(e.target.value)} required max={new Date().toISOString().split('T')[0]} />
+                </div>
+
+                {/* Bloco 3 — Justificativa (motivo) */}
+                <div className="form-group">
+                  <label className="form-label">Justificativa (motivo) *</label>
+                  <select className="form-control" value={tipoId} onChange={e => { setTipoId(e.target.value); setMotivoOutros(''); }} required>
                     <option value="">Selecione o motivo...</option>
                     {tipos.filter(t => t.ativo).map(t => (
                       <option key={t.id} value={t.id}>{t.nome}{t.exigeAnexo ? ' (requer comprovante)' : ''}</option>
@@ -213,44 +359,34 @@ export default function ColaboradorPage() {
                   )}
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Data da ocorrência *</label>
-                  <input type="date" className="form-control" value={dataOcorrencia} onChange={e => setDataOcorrencia(e.target.value)} required max={new Date().toISOString().split('T')[0]} />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Período *</label>
-                  <select className="form-control" value={periodo} onChange={e => setPeriodo(e.target.value)}>
-                    <option value="dia_inteiro">Dia inteiro</option>
-                    <option value="parcial">Parcial (horas)</option>
-                  </select>
-                </div>
-
-                {periodo === 'parcial' && (
-                  <div className="grid-2">
-                    <div className="form-group">
-                      <label className="form-label">Hora início</label>
-                      <input type="time" className="form-control" value={horaInicio} onChange={e => setHoraInicio(e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Hora fim</label>
-                      <input type="time" className="form-control" value={horaFim} onChange={e => setHoraFim(e.target.value)} />
-                    </div>
+                {/* Campo Outros */}
+                {isOutros && (
+                  <div className="form-group">
+                    <label className="form-label">Descreva o motivo *</label>
+                    <textarea
+                      className="form-control"
+                      placeholder="Descreva detalhadamente o motivo da justificativa..."
+                      value={motivoOutros}
+                      onChange={e => setMotivoOutros(e.target.value)}
+                      required
+                      rows={3}
+                    />
                   </div>
                 )}
 
+                {/* Bloco 4 — Descrição */}
                 <div className="form-group">
-                  <label className="form-label">Descrição *</label>
+                  <label className="form-label">Observacoes *</label>
                   <textarea
                     className="form-control"
-                    placeholder="Descreva o motivo da ausência ou não registro..."
+                    placeholder="Descreva detalhes adicionais sobre a ausencia ou nao registro..."
                     value={descricao}
                     onChange={e => setDescricao(e.target.value)}
                     required
                   />
                 </div>
 
-                {/* Área de upload */}
+                {/* Bloco 5 — Upload */}
                 <div className="form-group">
                   <label className="form-label">
                     Comprovante / Anexo

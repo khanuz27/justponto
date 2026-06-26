@@ -5,11 +5,26 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  IsArray,
+  ValidateNested,
   Matches,
   ValidateIf,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Periodo } from '../../common/enums/periodo.enum';
+
+export class OcorrenciaDto {
+  @ApiProperty({ example: 'entrada' })
+  @IsString()
+  @IsNotEmpty()
+  tipo: string;
+
+  @ApiPropertyOptional({ example: '08:00' })
+  @IsOptional()
+  @Matches(/^\d{2}:\d{2}$/, { message: 'horarioCorreto deve estar no formato HH:mm' })
+  horarioCorreto?: string;
+}
 
 export class CriarJustificativaDto {
   @ApiProperty({ example: 'uuid-do-tipo-ocorrencia' })
@@ -43,4 +58,16 @@ export class CriarJustificativaDto {
   @IsString()
   @IsNotEmpty({ message: 'Descrição é obrigatória' })
   descricao: string;
+
+  @ApiPropertyOptional({ example: 'Motivo detalhado quando tipo é Outros' })
+  @IsOptional()
+  @IsString()
+  motivoOutros?: string;
+
+  @ApiPropertyOptional({ type: [OcorrenciaDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OcorrenciaDto)
+  ocorrencias?: OcorrenciaDto[];
 }

@@ -1,4 +1,5 @@
 import { Justificativa } from '../../common/entities/justificativa.entity';
+import { JustificativaOcorrencia } from '../../common/entities/justificativa-ocorrencia.entity';
 import { StatusJustificativa } from '../../common/enums/status-justificativa.enum';
 
 export interface FiltroJustificativas {
@@ -17,4 +18,8 @@ export interface IJustificativasRepositorio {
   create(dados: Omit<Justificativa, 'id' | 'criadoEm' | 'atualizadoEm'>): Promise<Justificativa>;
   update(id: string, dados: Partial<Justificativa>): Promise<Justificativa | null>;
   marcarAjusteLancado(id: string, lancado: boolean): Promise<Justificativa | null>;
+
+  // Ocorrências
+  createOcorrencias(justificativaId: string, ocorrencias: Array<{ tipo: string; horarioCorreto?: string }>): Promise<JustificativaOcorrencia[]>;
+  findOcorrenciasByJustificativaId(justificativaId: string): Promise<JustificativaOcorrencia[]>;
 }

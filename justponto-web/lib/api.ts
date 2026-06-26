@@ -109,6 +109,10 @@ export async function getTodasJustificativas(params?: {
   return request(`/justificativas${qs.toString() ? '?' + qs : ''}`);
 }
 
+export async function getJustificativaDetalhe(id: string): Promise<JustificativaDetalhe> {
+  return request(`/justificativas/${id}`);
+}
+
 export async function criarJustificativa(
   data: {
     tipoOcorrenciaId: string;
@@ -117,6 +121,8 @@ export async function criarJustificativa(
     horaInicio?: string;
     horaFim?: string;
     descricao: string;
+    motivoOutros?: string;
+    ocorrencias?: Array<{ tipo: string; horarioCorreto?: string }>;
   },
   arquivo?: File | null,
 ): Promise<Justificativa> {
@@ -127,16 +133,22 @@ export async function criarJustificativa(
   let body: FormData | string;
   if (arquivo) {
     const form = new FormData();
-    Object.entries(data).forEach(([k, v]) => { if (v != null) form.append(k, v); });
+    form.append('tipoOcorrenciaId', data.tipoOcorrenciaId);
+    form.append('dataOcorrencia', data.dataOcorrencia);
+    if (data.periodo) form.append('periodo', data.periodo);
+    if (data.horaInicio) form.append('horaInicio', data.horaInicio);
+    if (data.horaFim) form.append('horaFim', data.horaFim);
+    form.append('descricao', data.descricao);
+    if (data.motivoOutros) form.append('motivoOutros', data.motivoOutros);
+    if (data.ocorrencias) form.append('ocorrencias', JSON.stringify(data.ocorrencias));
     form.append('anexo', arquivo);
     body = form;
-    // Não definir Content-Type — o browser adiciona boundary automaticamente
   } else {
     headers['Content-Type'] = 'application/json';
     body = JSON.stringify(data);
   }
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/justificativas`, {
+  const res = await fetch(`${API_URL}/justificativas`, {
     method: 'POST',
     headers,
     body,
@@ -204,12 +216,30 @@ export interface Justificativa {
   horaInicio?: string;
   horaFim?: string;
   descricao: string;
+  motivoOutros?: string;
   status: 'pendente' | 'aprovada' | 'reprovada';
   aprovadorId?: string;
   comentarioAvaliacao?: string;
   avaliadoEm?: string;
   criadoEm: string;
   atualizadoEm: string;
+}
+
+export interface JustificativaOcorrencia {
+  id: string;
+  justificativaId: string;
+  tipoOcorrencia: 'entrada' | 'saida_almoco' | 'retorno_almoco' | 'saida' | 'dia_inteiro';
+  horarioCorreto?: string;
+  criadoEm: string;
+}
+
+export interface JustificativaDetalhe extends Justificativa {
+  ocorrencias: JustificativaOcorrencia[];
+  anexos: Anexo[];
+  colaboradorNome: string;
+  colaboradorEmail: string;
+  aprovadorNome?: string;
+  tipoNome: string;
 }
 
 export interface Anexo {
@@ -236,4 +266,3 @@ export interface RelatorioResumo {
   }>;
   rankingMotivos: Array<{ tipoId: string; nome: string; total: number }>;
 }
-

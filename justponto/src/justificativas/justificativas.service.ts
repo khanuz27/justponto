@@ -25,6 +25,8 @@ import { StatusJustificativa } from '../common/enums/status-justificativa.enum';
 import { PerfilUsuario } from '../common/enums/perfil-usuario.enum';
 import { Periodo } from '../common/enums/periodo.enum';
 import { Justificativa } from '../common/entities/justificativa.entity';
+import { IAnexosRepositorio } from '../data/interfaces/anexos.repositorio.interface';
+import { ANEXOS_REPO } from '../data/data.module';
 import { FiltroJustificativas } from '../data/interfaces/justificativas.repositorio.interface';
 
 @Injectable()
@@ -42,43 +44,76 @@ export class JustificativasService {
     private readonly emailService: IEmailService,
     @Inject(USUARIOS_REPO)
     private readonly usuariosRepo: IUsuariosRepositorio,
+    @Inject(ANEXOS_REPO)
+    private readonly anexosRepo: IAnexosRepositorio,
   ) {}
 
-  // ── Colaborador: criar justificativa (RN-01, RN-03, RN-07) ──────────────
+  // ── Colaborador: criar justificativa ──────────────────────────
   async criar(
     dto: CriarJustificativaDto,
     colaboradorId: string,
     temAnexo: boolean,
   ): Promise<Justificativa> {
-    // Valida tipo de ocorrência
     const tipo = await this.tiposRepo.findById(dto.tipoOcorrenciaId);
     if (!tipo || !tipo.ativo) {
       throw new NotFoundException('Tipo de ocorrência não encontrado ou inativo');
     }
 
-    // RN-03: anexo obrigatório se o tipo exigir
     if (tipo.exigeAnexo && !temAnexo) {
       throw new BadRequestException(
         `O tipo "${tipo.nome}" exige comprovante. Por favor, envie o anexo junto com a justificativa.`,
       );
     }
 
-    // RN-01: nasce como pendente
+    // Derivar periodo das ocorrências
+    let periodo = dto.periodo ?? Periodo.DIA_INTEIRO;
+    let horaInicio = dto.horaInicio;
+    let horaFim = dto.horaFim;
+
+    if (dto.ocorrencias && dto.ocorrencias.length > 0) {
+      const temDiaInteiro = dto.ocorrencias.some(o => o.tipo === 'dia_inteiro');
+      if (temDiaInteiro) {
+        periodo = Periodo.DIA_INTEIRO;
+        horaInicio = undefined;
+        horaFim = undefined;
+      } else {
+        periodo = Periodo.PARCIAL;
+        // Usa o menor e maior horário como range
+        const horarios = dto.ocorrencias
+          .map(o => o.horarioCorreto)
+          .filter(Boolean)
+          .sort() as string[];
+        if (horarios.length > 0) {
+          horaInicio = horarios[0];
+          horaFim = horarios[horarios.length - 1];
+        }
+      }
+    }
+
     const nova = await this.justificativasRepo.create({
       colaboradorId,
       tipoOcorrenciaId: dto.tipoOcorrenciaId,
       dataOcorrencia: dto.dataOcorrencia,
-      periodo: dto.periodo ?? Periodo.DIA_INTEIRO,
-      horaInicio: dto.horaInicio,
-      horaFim: dto.horaFim,
+      periodo,
+      horaInicio,
+      horaFim,
       descricao: dto.descricao,
+      motivoOutros: dto.motivoOutros,
       status: StatusJustificativa.PENDENTE,
       aprovadorId: undefined,
       comentarioAvaliacao: undefined,
       avaliadoEm: undefined,
     });
 
-    // RN-05: registrar no histórico
+    // Salvar ocorrências na tabela filha
+    if (dto.ocorrencias && dto.ocorrencias.length > 0) {
+      await this.justificativasRepo.createOcorrencias(
+        nova.id,
+        dto.ocorrencias.map(o => ({ tipo: o.tipo, horarioCorreto: o.horarioCorreto })),
+      );
+    }
+
+    // Registrar no histórico
     await this.historicoRepo.create({
       justificativaId: nova.id,
       statusAnterior: undefined,
@@ -87,28 +122,63 @@ export class JustificativasService {
       comentario: 'Justificativa criada',
     });
 
-    // Dispara notificação ao gerente (Tarefa 8)
+    // Notificar gerente
     await this.notificarGerente(nova.id, colaboradorId, tipo.nome);
 
     return nova;
   }
 
-  // ── Colaborador: ver as próprias justificativas (RN-04) ──────────────────
+  // ── Colaborador: ver as próprias justificativas ───────────────
   async listarMinhas(colaboradorId: string): Promise<Justificativa[]> {
     return this.justificativasRepo.findByColaboradorId(colaboradorId);
   }
 
-  // ── Gerente: ver pendentes da equipe (RN-04) ─────────────────────────────
+  // ── Gerente: ver pendentes da equipe ──────────────────────────
   async listarPendentes(gerenteId: string): Promise<Justificativa[]> {
     return this.justificativasRepo.findPendentesByGerenteId(gerenteId);
   }
 
-  // ── RH/Direção: listar todas com filtros (RN-04) ─────────────────────────
+  // ── RH/Direção: listar todas com filtros ──────────────────────
   async listarTodas(filtro: FiltroJustificativas): Promise<Justificativa[]> {
     return this.justificativasRepo.findAll(filtro);
   }
 
-  // ── Gerente/Direção: avaliar justificativa (RN-02, RN-05, RN-06) ─────────
+  // ── Detalhe completo de uma justificativa ─────────────────────
+  async detalhe(id: string, solicitante: { id: string; perfil: PerfilUsuario }) {
+    const justificativa = await this.justificativasRepo.findById(id);
+    if (!justificativa) throw new NotFoundException(`Justificativa ${id} não encontrada`);
+
+    // Colaborador só pode ver as próprias
+    if (
+      solicitante.perfil === PerfilUsuario.COLABORADOR &&
+      justificativa.colaboradorId !== solicitante.id
+    ) {
+      throw new ForbiddenException('Acesso negado');
+    }
+
+    const [ocorrencias, anexos, colaborador, aprovador] = await Promise.all([
+      this.justificativasRepo.findOcorrenciasByJustificativaId(id),
+      this.anexosRepo.findByJustificativaId(id),
+      this.usuariosRepo.findById(justificativa.colaboradorId),
+      justificativa.aprovadorId
+        ? this.usuariosRepo.findById(justificativa.aprovadorId)
+        : Promise.resolve(null),
+    ]);
+
+    const tipo = await this.tiposRepo.findById(justificativa.tipoOcorrenciaId);
+
+    return {
+      ...justificativa,
+      ocorrencias,
+      anexos,
+      colaboradorNome: colaborador?.nome ?? '',
+      colaboradorEmail: colaborador?.email ?? '',
+      aprovadorNome: aprovador?.nome ?? undefined,
+      tipoNome: tipo?.nome ?? '',
+    };
+  }
+
+  // ── Gerente/Direção: avaliar justificativa ────────────────────
   async avaliar(
     id: string,
     dto: AvaliarJustificativaDto,
@@ -117,12 +187,10 @@ export class JustificativasService {
     const justificativa = await this.justificativasRepo.findById(id);
     if (!justificativa) throw new NotFoundException(`Justificativa ${id} não encontrada`);
 
-    // RN-06: justificativa avaliada não pode ser reavaliada por colaborador
     if (justificativa.status !== StatusJustificativa.PENDENTE) {
       throw new BadRequestException('Esta justificativa já foi avaliada e não pode ser alterada');
     }
 
-    // RN-02: apenas gerente do colaborador ou direção pode avaliar
     if (avaliador.perfil === PerfilUsuario.GERENTE) {
       const colaborador = await this.usuariosRepo.findById(justificativa.colaboradorId);
       if (!colaborador || colaborador.gerenteId !== avaliador.id) {
@@ -140,7 +208,6 @@ export class JustificativasService {
       avaliadoEm: new Date(),
     });
 
-    // RN-05: registrar no histórico
     await this.historicoRepo.create({
       justificativaId: id,
       statusAnterior,
@@ -152,14 +219,14 @@ export class JustificativasService {
     return atualizada!;
   }
 
-  // ── RH: marcar ajuste lançado ─────────────────────────────────────────────
+  // ── RH: marcar ajuste lançado ─────────────────────────────────
   async marcarAjusteLancado(id: string): Promise<Justificativa> {
     const justificativa = await this.justificativasRepo.findById(id);
     if (!justificativa) throw new NotFoundException(`Justificativa ${id} não encontrada`);
     return (await this.justificativasRepo.marcarAjusteLancado(id, true))!;
   }
 
-  // ── Privado: notificar gerente ────────────────────────────────────────────
+  // ── Privado: notificar gerente ────────────────────────────────
   private async notificarGerente(
     justificativaId: string,
     colaboradorId: string,

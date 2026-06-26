@@ -12,6 +12,7 @@ import {
   Anexo,
 } from '@/lib/api';
 import { AnexoCell } from '@/components/AnexoCell';
+import { JustificativaDetalheModal } from '@/components/JustificativaDetalhe';
 
 function formatData(d: string) {
   if (!d) return '—';
@@ -32,6 +33,7 @@ export default function GerentePage() {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
+  const [detalheId, setDetalheId] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -142,9 +144,14 @@ export default function GerentePage() {
                         <td><AnexoCell anexos={anexos[j.id] ?? []} /></td>
                         <td className="td-muted">{formatData(j.criadoEm)}</td>
                         <td>
-                          <button className="btn btn-primary btn-sm" onClick={() => abrir(j)}>
-                            Avaliar
-                          </button>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button className="btn btn-outline btn-sm" onClick={() => setDetalheId(j.id)}>
+                              Ver
+                            </button>
+                            <button className="btn btn-primary btn-sm" onClick={() => abrir(j)}>
+                              Avaliar
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -237,6 +244,10 @@ export default function GerentePage() {
             </form>
           </div>
         </div>
+      )}
+
+      {detalheId && (
+        <JustificativaDetalheModal justificativaId={detalheId} onClose={() => setDetalheId(null)} />
       )}
     </>
   );

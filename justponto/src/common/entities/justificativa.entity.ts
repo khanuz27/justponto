@@ -10,6 +10,7 @@ export class Justificativa {
   horaInicio?: string; // HH:mm
   horaFim?: string;    // HH:mm
   descricao: string;
+  motivoOutros?: string;
   status: StatusJustificativa;
   aprovadorId?: string;
   comentarioAvaliacao?: string;
