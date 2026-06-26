@@ -44,6 +44,7 @@ export function JustificativaDetalheModal({ justificativaId, onClose, podeAvalia
   const [comentario, setComentario] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [sucesso, setSucesso] = useState('');
+  const [statusAval, setStatusAval] = useState<'aprovada' | 'reprovada'>('aprovada');
 
   useEffect(() => {
     setLoading(true);
@@ -214,48 +215,55 @@ export function JustificativaDetalheModal({ justificativaId, onClose, podeAvalia
                     Avaliar Justificativa
                   </div>
                   {sucesso && <div className="alert alert-success" style={{ marginBottom: 10 }}>{sucesso}</div>}
-                  <textarea
-                    className="form-control"
-                    placeholder="Comentario (opcional)..."
-                    value={comentario}
-                    onChange={e => setComentario(e.target.value)}
-                    rows={2}
-                    style={{ marginBottom: 12 }}
-                  />
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <button
-                      className="btn btn-sm"
-                      disabled={salvando}
-                      onClick={async () => {
-                        setSalvando(true); setErro('');
-                        try {
-                          await avaliarJustificativa(justificativaId, { status: 'aprovada', comentario: comentario || undefined });
-                          setSucesso('Justificativa aprovada!');
-                          setTimeout(() => { onAvaliado?.(); onClose(); }, 1200);
-                        } catch (e: any) { setErro(e.message); }
-                        finally { setSalvando(false); }
-                      }}
-                      style={{ flex: 1, background: 'var(--green-600)', color: '#fff', border: 'none', fontWeight: 600, padding: '10px 0', borderRadius: 'var(--radius)' }}
-                    >
-                      {salvando ? <span className="spinner" /> : 'Aprovar'}
-                    </button>
-                    <button
-                      className="btn btn-sm"
-                      disabled={salvando}
-                      onClick={async () => {
-                        setSalvando(true); setErro('');
-                        try {
-                          await avaliarJustificativa(justificativaId, { status: 'reprovada', comentario: comentario || undefined });
-                          setSucesso('Justificativa reprovada.');
-                          setTimeout(() => { onAvaliado?.(); onClose(); }, 1200);
-                        } catch (e: any) { setErro(e.message); }
-                        finally { setSalvando(false); }
-                      }}
-                      style={{ flex: 1, background: 'var(--red-600)', color: '#fff', border: 'none', fontWeight: 600, padding: '10px 0', borderRadius: 'var(--radius)' }}
-                    >
-                      {salvando ? <span className="spinner" /> : 'Reprovar'}
-                    </button>
+
+                  <div className="form-group">
+                    <label className="form-label">Decisao *</label>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      {(['aprovada', 'reprovada'] as const).map(s => (
+                        <label key={s} style={{
+                          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                          padding: '10px', border: `2px solid ${statusAval === s ? (s === 'aprovada' ? 'var(--green-500)' : 'var(--red-500)') : 'var(--slate-200)'}`,
+                          borderRadius: 'var(--radius)', cursor: 'pointer',
+                          background: statusAval === s ? (s === 'aprovada' ? 'var(--green-50)' : 'var(--red-50)') : 'white',
+                          color: statusAval === s ? (s === 'aprovada' ? 'var(--green-700)' : 'var(--red-700)') : 'var(--slate-600)',
+                          fontWeight: 600, transition: 'all 0.15s',
+                        }}>
+                          <input type="radio" name="status-detalhe" value={s} checked={statusAval === s} onChange={() => setStatusAval(s)} style={{ display: 'none' }} />
+                          {s === 'aprovada' ? 'Aprovar' : 'Reprovar'}
+                        </label>
+                      ))}
+                    </div>
                   </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Comentario {statusAval === 'reprovada' ? '*' : '(opcional)'}</label>
+                    <textarea
+                      className="form-control"
+                      placeholder={statusAval === 'aprovada' ? 'Adicione um comentario se necessario...' : 'Explique o motivo da reprovacao...'}
+                      value={comentario}
+                      onChange={e => setComentario(e.target.value)}
+                      required={statusAval === 'reprovada'}
+                      rows={2}
+                    />
+                  </div>
+
+                  <button
+                    className={`btn ${statusAval === 'aprovada' ? 'btn-success' : 'btn-danger'}`}
+                    disabled={salvando || !statusAval || (statusAval === 'reprovada' && !comentario.trim())}
+                    onClick={async () => {
+                      if (!statusAval) return;
+                      setSalvando(true); setErro('');
+                      try {
+                        await avaliarJustificativa(justificativaId, { status: statusAval, comentario: comentario || undefined });
+                        setSucesso(statusAval === 'aprovada' ? 'Justificativa aprovada!' : 'Justificativa reprovada.');
+                        setTimeout(() => { onAvaliado?.(); onClose(); }, 1200);
+                      } catch (e: any) { setErro(e.message); }
+                      finally { setSalvando(false); }
+                    }}
+                    style={{ width: '100%' }}
+                  >
+                    {salvando ? <><span className="spinner" /> Salvando...</> : statusAval === 'aprovada' ? 'Confirmar Aprovacao' : 'Confirmar Reprovacao'}
+                  </button>
                 </div>
               )}
             </>
