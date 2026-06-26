@@ -321,15 +321,18 @@ export default function ColaboradorPage() {
                             {o.label}
                           </span>
                           {checked && o.key !== 'dia_inteiro' && (
-                            <input
-                              type="time"
-                              className="form-control"
-                              value={ocorrenciasHorarios[o.key] || ''}
-                              onChange={e => handleHorarioChange(o.key, e.target.value)}
-                              placeholder="Horario correto"
-                              style={{ width: 130, fontSize: 13, padding: '6px 10px' }}
-                              required
-                            />
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                              <span style={{ fontSize: 10, color: 'var(--slate-500)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Horario correto</span>
+                              <input
+                                type="time"
+                                className="form-control"
+                                value={ocorrenciasHorarios[o.key] || ''}
+                                onChange={e => handleHorarioChange(o.key, e.target.value)}
+                                placeholder="Horario correto"
+                                style={{ width: 130, fontSize: 13, padding: '6px 10px' }}
+                                required
+                              />
+                            </div>
                           )}
                         </div>
                       );
