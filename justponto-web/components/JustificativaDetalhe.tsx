@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { getJustificativaDetalhe, getAnexoDownloadUrl, JustificativaDetalhe as JDType } from '@/lib/api';
+import { getJustificativaDetalhe, getAnexoDownloadUrl, avaliarJustificativa, JustificativaDetalhe as JDType } from '@/lib/api';
 
 const OCORRENCIA_LABELS: Record<string, string> = {
   entrada: 'Entrada',
@@ -33,12 +33,17 @@ function formatDataHora(d: string) {
 interface Props {
   justificativaId: string;
   onClose: () => void;
+  podeAvaliar?: boolean;
+  onAvaliado?: () => void;
 }
 
-export function JustificativaDetalheModal({ justificativaId, onClose }: Props) {
+export function JustificativaDetalheModal({ justificativaId, onClose, podeAvaliar, onAvaliado }: Props) {
   const [detalhe, setDetalhe] = useState<JDType | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
+  const [comentario, setComentario] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const [sucesso, setSucesso] = useState('');
 
   useEffect(() => {
     setLoading(true);
@@ -200,6 +205,57 @@ export function JustificativaDetalheModal({ justificativaId, onClose }: Props) {
                       <div style={{ fontSize: 13, color: 'var(--slate-700)', marginTop: 2 }}>{detalhe.comentarioAvaliacao}</div>
                     </div>
                   )}
+                </div>
+              )}
+              {/* Avaliar inline */}
+              {podeAvaliar && detalhe.status === 'pendente' && (
+                <div style={{ borderTop: '1px solid var(--slate-200)', paddingTop: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--slate-600)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Avaliar Justificativa
+                  </div>
+                  {sucesso && <div className="alert alert-success" style={{ marginBottom: 10 }}>{sucesso}</div>}
+                  <textarea
+                    className="form-control"
+                    placeholder="Comentario (opcional)..."
+                    value={comentario}
+                    onChange={e => setComentario(e.target.value)}
+                    rows={2}
+                    style={{ marginBottom: 12 }}
+                  />
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      className="btn btn-sm"
+                      disabled={salvando}
+                      onClick={async () => {
+                        setSalvando(true); setErro('');
+                        try {
+                          await avaliarJustificativa(justificativaId, { status: 'aprovada', comentario: comentario || undefined });
+                          setSucesso('Justificativa aprovada!');
+                          setTimeout(() => { onAvaliado?.(); onClose(); }, 1200);
+                        } catch (e: any) { setErro(e.message); }
+                        finally { setSalvando(false); }
+                      }}
+                      style={{ flex: 1, background: 'var(--green-600)', color: '#fff', border: 'none', fontWeight: 600, padding: '10px 0', borderRadius: 'var(--radius)' }}
+                    >
+                      {salvando ? <span className="spinner" /> : 'Aprovar'}
+                    </button>
+                    <button
+                      className="btn btn-sm"
+                      disabled={salvando}
+                      onClick={async () => {
+                        setSalvando(true); setErro('');
+                        try {
+                          await avaliarJustificativa(justificativaId, { status: 'reprovada', comentario: comentario || undefined });
+                          setSucesso('Justificativa reprovada.');
+                          setTimeout(() => { onAvaliado?.(); onClose(); }, 1200);
+                        } catch (e: any) { setErro(e.message); }
+                        finally { setSalvando(false); }
+                      }}
+                      style={{ flex: 1, background: 'var(--red-600)', color: '#fff', border: 'none', fontWeight: 600, padding: '10px 0', borderRadius: 'var(--radius)' }}
+                    >
+                      {salvando ? <span className="spinner" /> : 'Reprovar'}
+                    </button>
+                  </div>
                 </div>
               )}
             </>

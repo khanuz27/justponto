@@ -247,7 +247,7 @@ export default function GerentePage() {
       )}
 
       {detalheId && (
-        <JustificativaDetalheModal justificativaId={detalheId} onClose={() => setDetalheId(null)} />
+        <JustificativaDetalheModal justificativaId={detalheId} onClose={() => setDetalheId(null)} podeAvaliar={true} onAvaliado={carregar} />
       )}
     </>
   );
