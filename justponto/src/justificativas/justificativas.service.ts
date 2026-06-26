@@ -85,7 +85,13 @@ export class JustificativasService {
           .sort() as string[];
         if (horarios.length > 0) {
           horaInicio = horarios[0];
-          horaFim = horarios[horarios.length - 1];
+          horaFim = horarios.length > 1 ? horarios[horarios.length - 1] : horarios[0];
+          // Se os horários forem iguais, adiciona 1 min ao fim para satisfazer chk_horas (inicio < fim)
+          if (horaInicio === horaFim) {
+            const [h, m] = horaFim.split(':').map(Number);
+            const totalMin = h * 60 + m + 1;
+            horaFim = `${String(Math.floor(totalMin / 60)).padStart(2, '0')}:${String(totalMin % 60).padStart(2, '0')}`;
+          }
         }
       }
     }
