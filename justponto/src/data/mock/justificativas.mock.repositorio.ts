@@ -32,14 +32,9 @@ export class JustificativasMockRepositorio implements IJustificativasRepositorio
   }
 
   async findPendentesByGerenteId(gerenteId: string): Promise<Justificativa[]> {
-    const colaboradoresDoGerente = Object.entries(this.colaboradorParaGerente)
-      .filter(([, gId]) => gId === gerenteId)
-      .map(([cId]) => cId);
-
+    // Retorna TODAS as pendentes (sem filtro por gerente_id)
     return this.justificativas.filter(
-      (j) =>
-        colaboradoresDoGerente.includes(j.colaboradorId) &&
-        j.status === StatusJustificativa.PENDENTE,
+      (j) => j.status === StatusJustificativa.PENDENTE,
     );
   }
 

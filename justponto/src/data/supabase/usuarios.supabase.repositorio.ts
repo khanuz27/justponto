@@ -77,4 +77,11 @@ export class UsuariosSupabaseRepositorio implements IUsuariosRepositorio {
     if (error || !data) return null;
     return this.mapRow(data);
   }
+
+  async findByPerfil(perfil: PerfilUsuario): Promise<Usuario[]> {
+    const { data } = await this.db
+      .from('usuarios').select('*')
+      .eq('perfil', perfil).eq('ativo', true).order('nome');
+    return (data ?? []).map(r => this.mapRow(r));
+  }
 }

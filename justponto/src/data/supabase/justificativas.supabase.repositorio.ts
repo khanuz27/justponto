@@ -65,14 +65,9 @@ export class JustificativasSupabaseRepositorio implements IJustificativasReposit
   }
 
   async findPendentesByGerenteId(gerenteId: string): Promise<Justificativa[]> {
-    const { data: colaboradores } = await this.db
-      .from('usuarios').select('id').eq('gerente_id', gerenteId).eq('ativo', true);
-    if (!colaboradores || colaboradores.length === 0) return [];
-
-    const ids = colaboradores.map(c => c.id);
+    // Retorna TODAS as pendentes (sem filtro por gerente_id)
     const { data } = await this.db
       .from('justificativas').select('*')
-      .in('colaborador_id', ids)
       .eq('status', StatusJustificativa.PENDENTE)
       .order('criado_em', { ascending: false });
     return (data ?? []).map(r => this.mapRow(r));

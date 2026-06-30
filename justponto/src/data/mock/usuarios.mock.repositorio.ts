@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { IUsuariosRepositorio } from '../interfaces/usuarios.repositorio.interface';
 import { Usuario } from '../../common/entities/usuario.entity';
+import { PerfilUsuario } from '../../common/enums/perfil-usuario.enum';
 import { USUARIOS_SEED } from './mock.seed';
 
 @Injectable()
@@ -36,5 +37,9 @@ export class UsuariosMockRepositorio implements IUsuariosRepositorio {
     usuario.ativo = ativo;
     usuario.atualizadoEm = new Date();
     return usuario;
+  }
+
+  async findByPerfil(perfil: PerfilUsuario): Promise<Usuario[]> {
+    return this.usuarios.filter(u => u.perfil === perfil && u.ativo);
   }
 }
