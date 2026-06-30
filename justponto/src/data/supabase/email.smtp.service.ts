@@ -9,14 +9,23 @@ export class EmailSmtpService implements IEmailService {
   private transporter: nodemailer.Transporter;
 
   constructor(private readonly config: ConfigService) {
+    const port = Number(this.config.get<string>('SMTP_PORT', '587'));
+    const secure = this.config.get<string>('SMTP_SECURE', 'false') === 'true';
+
+    this.logger.log(`Configurando SMTP: host=${this.config.get('SMTP_HOST')}, port=${port}, secure=${secure}`);
+
     this.transporter = nodemailer.createTransport({
       host: this.config.get<string>('SMTP_HOST', 'smtp.gmail.com'),
-      port: this.config.get<number>('SMTP_PORT', 465),
-      secure: this.config.get<string>('SMTP_SECURE', 'true') === 'true',
+      port,
+      secure,
       auth: {
         user: this.config.get<string>('SMTP_USER'),
         pass: this.config.get<string>('SMTP_PASS'),
       },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
+      ...((!secure && port === 587) ? { requireTLS: true } : {}),
     });
   }
 
