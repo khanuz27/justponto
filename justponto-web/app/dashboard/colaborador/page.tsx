@@ -243,7 +243,7 @@ export default function ColaboradorPage() {
                   <tr>
                     <th>Data</th>
                     <th>Motivo</th>
-                    <th>Ocorrencia / Horario</th>
+                    <th>Horario Correto</th>
                     <th>Descricao</th>
                     <th>Status</th>
                     <th>Anexo</th>

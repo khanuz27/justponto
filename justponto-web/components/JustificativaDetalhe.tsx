@@ -105,12 +105,6 @@ export function JustificativaDetalheModal({ justificativaId, onClose, podeAvalia
                     <div style={{ fontSize: 11, color: 'var(--slate-400)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Motivo (Justificativa)</div>
                     <div style={{ fontWeight: 600, marginTop: 2 }}>{detalhe.tipoNome}</div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: 'var(--slate-400)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Periodo</div>
-                    <div style={{ fontWeight: 600, marginTop: 2 }}>
-                      {detalhe.periodo === 'dia_inteiro' ? 'Dia inteiro' : `${detalhe.horaInicio || ''} - ${detalhe.horaFim || ''}`}
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -118,7 +112,7 @@ export function JustificativaDetalheModal({ justificativaId, onClose, podeAvalia
               {detalhe.ocorrencias && detalhe.ocorrencias.length > 0 && (
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--slate-600)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Ocorrencias Selecionadas
+                    Horario Correto
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {detalhe.ocorrencias.map(o => (
