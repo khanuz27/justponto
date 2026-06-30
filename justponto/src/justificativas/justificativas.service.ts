@@ -1,6 +1,7 @@
 import {
   Injectable,
   Inject,
+  Logger,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
@@ -47,6 +48,8 @@ export class JustificativasService {
     @Inject(ANEXOS_REPO)
     private readonly anexosRepo: IAnexosRepositorio,
   ) {}
+
+  private readonly logger = new Logger(JustificativasService.name);
 
   // ── Colaborador: criar justificativa ──────────────────────────
   async criar(
@@ -128,8 +131,10 @@ export class JustificativasService {
       comentario: 'Justificativa criada',
     });
 
-    // Notificar gerente
-    await this.notificarGerentes(nova.id, colaboradorId, tipo.nome);
+    // Notificar gerentes (fire-and-forget, não bloqueia a resposta)
+    this.notificarGerentes(nova.id, colaboradorId, tipo.nome).catch(err => {
+      this.logger.error(`Falha ao notificar gerentes: ${err.message}`);
+    });
 
     return nova;
   }
