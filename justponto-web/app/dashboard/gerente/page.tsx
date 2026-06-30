@@ -20,6 +20,20 @@ function formatData(d: string) {
   return `${day}/${m}/${y}`;
 }
 
+const OCORRENCIA_LABELS: Record<string, string> = {
+  entrada: 'Entrada', saida_almoco: 'Saida Almoco', retorno_almoco: 'Retorno Almoco', saida: 'Saida', dia_inteiro: 'Dia Inteiro',
+};
+
+function formatOcorrenciaHorario(j: Justificativa): string {
+  if (j.ocorrencias && j.ocorrencias.length > 0) {
+    return j.ocorrencias.map(o => {
+      const label = OCORRENCIA_LABELS[o.tipoOcorrencia] || o.tipoOcorrencia;
+      return o.horarioCorreto ? `${label} - ${o.horarioCorreto}` : label;
+    }).join(' / ');
+  }
+  return j.periodo === 'dia_inteiro' ? 'Dia inteiro' : `${j.horaInicio || ''} – ${j.horaFim || ''}`;
+}
+
 export default function GerentePage() {
   const [pendentes, setPendentes] = useState<Justificativa[]>([]);
   const [tipos, setTipos] = useState<TipoOcorrencia[]>([]);
@@ -120,7 +134,7 @@ export default function GerentePage() {
                     <th>Data</th>
                     <th>Colaborador</th>
                     <th>Motivo</th>
-                    <th>Período</th>
+                    <th>Ocorrencia / Horario</th>
                     <th>Descrição</th>
                     <th>Anexo</th>
                     <th>Enviado em</th>
@@ -135,7 +149,7 @@ export default function GerentePage() {
                         <td className="td-strong">{formatData(j.dataOcorrencia)}</td>
                         <td className="td-strong">{nomeColaborador(j.colaboradorId)}</td>
                         <td>{tipo?.nome ?? '—'}</td>
-                        <td>{j.periodo === 'dia_inteiro' ? 'Dia inteiro' : `${j.horaInicio} – ${j.horaFim}`}</td>
+                        <td>{formatOcorrenciaHorario(j)}</td>
                         <td style={{ maxWidth: 200 }}>
                           <span title={j.descricao} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {j.descricao}
@@ -189,7 +203,7 @@ export default function GerentePage() {
                     </div>
                     <div>
                       <div style={{ fontSize: 11, color: 'var(--slate-400)' }}>Período</div>
-                      <div style={{ fontWeight: 600 }}>{selecionada.periodo === 'dia_inteiro' ? 'Dia inteiro' : `${selecionada.horaInicio} – ${selecionada.horaFim}`}</div>
+                      <div style={{ fontWeight: 600 }}>{formatOcorrenciaHorario(selecionada)}</div>
                     </div>
                   </div>
                   <div style={{ marginTop: 8 }}>

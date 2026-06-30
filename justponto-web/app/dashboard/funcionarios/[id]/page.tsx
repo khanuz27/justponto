@@ -23,6 +23,20 @@ const STATUS_LABEL: Record<string, string> = {
   pendente: 'Pendente', aprovada: 'Aprovada', reprovada: 'Reprovada',
 };
 
+const OCORRENCIA_LABELS: Record<string, string> = {
+  entrada: 'Entrada', saida_almoco: 'Saida Almoco', retorno_almoco: 'Retorno Almoco', saida: 'Saida', dia_inteiro: 'Dia Inteiro',
+};
+
+function formatOcorrenciaHorario(j: Justificativa): string {
+  if (j.ocorrencias && j.ocorrencias.length > 0) {
+    return j.ocorrencias.map(o => {
+      const label = OCORRENCIA_LABELS[o.tipoOcorrencia] || o.tipoOcorrencia;
+      return o.horarioCorreto ? `${label} - ${o.horarioCorreto}` : label;
+    }).join(' / ');
+  }
+  return j.periodo === 'dia_inteiro' ? 'Dia inteiro' : `${j.horaInicio || ''} – ${j.horaFim || ''}`;
+}
+
 function calcKpis(lista: Justificativa[]) {
   let diasInteiros = 0;
   let minutosParciais = 0;
@@ -211,7 +225,7 @@ export default function FuncionarioDetalhe() {
                   <tr>
                     <th>Data da ocorrência</th>
                     <th>Motivo</th>
-                    <th>Período</th>
+                    <th>Ocorrencia / Horario</th>
                     <th>Descrição</th>
                     <th>Status</th>
                     <th>Avaliado em</th>
@@ -227,7 +241,7 @@ export default function FuncionarioDetalhe() {
                         <tr>
                           <td className="td-strong">{formatData(j.dataOcorrencia)}</td>
                           <td>{tipo?.nome ?? '—'}</td>
-                          <td>{j.periodo === 'dia_inteiro' ? 'Dia inteiro' : `${j.horaInicio} – ${j.horaFim}`}</td>
+                          <td>{formatOcorrenciaHorario(j)}</td>
                           <td style={{ maxWidth: 200 }}>
                             <span title={j.descricao} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {j.descricao}

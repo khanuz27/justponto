@@ -1,5 +1,6 @@
 import { StatusJustificativa } from '../enums/status-justificativa.enum';
 import { Periodo } from '../enums/periodo.enum';
+import { JustificativaOcorrencia } from './justificativa-ocorrencia.entity';
 
 export class Justificativa {
   id: string;
@@ -17,4 +18,5 @@ export class Justificativa {
   avaliadoEm?: Date;
   criadoEm: Date;
   atualizadoEm: Date;
+  ocorrencias?: JustificativaOcorrencia[];
 }

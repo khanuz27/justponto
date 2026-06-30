@@ -25,6 +25,20 @@ const OCORRENCIA_TIPOS = [
   { key: 'dia_inteiro', label: 'Dia Inteiro' },
 ] as const;
 
+const OCORRENCIA_LABELS: Record<string, string> = {
+  entrada: 'Entrada', saida_almoco: 'Saida Almoco', retorno_almoco: 'Retorno Almoco', saida: 'Saida', dia_inteiro: 'Dia Inteiro',
+};
+
+function formatOcorrenciaHorario(j: Justificativa): string {
+  if (j.ocorrencias && j.ocorrencias.length > 0) {
+    return j.ocorrencias.map(o => {
+      const label = OCORRENCIA_LABELS[o.tipoOcorrencia] || o.tipoOcorrencia;
+      return o.horarioCorreto ? `${label} - ${o.horarioCorreto}` : label;
+    }).join(' / ');
+  }
+  return j.periodo === 'dia_inteiro' ? 'Dia inteiro' : `${j.horaInicio || ''} - ${j.horaFim || ''}`;
+}
+
 function formatData(d: string) {
   if (!d) return '--';
   const [y, m, day] = d.split('T')[0].split('-');
@@ -229,7 +243,7 @@ export default function ColaboradorPage() {
                   <tr>
                     <th>Data</th>
                     <th>Motivo</th>
-                    <th>Periodo</th>
+                    <th>Ocorrencia / Horario</th>
                     <th>Descricao</th>
                     <th>Status</th>
                     <th>Anexo</th>
@@ -244,7 +258,7 @@ export default function ColaboradorPage() {
                       <tr key={j.id}>
                         <td className="td-strong">{formatData(j.dataOcorrencia)}</td>
                         <td>{tipo?.nome ?? '--'}</td>
-                        <td>{j.periodo === 'dia_inteiro' ? 'Dia inteiro' : `${j.horaInicio} - ${j.horaFim}`}</td>
+                        <td>{formatOcorrenciaHorario(j)}</td>
                         <td style={{ maxWidth: 200 }}>
                           <span title={j.descricao} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {j.descricao}

@@ -223,6 +223,7 @@ export interface Justificativa {
   avaliadoEm?: string;
   criadoEm: string;
   atualizadoEm: string;
+  ocorrencias?: JustificativaOcorrencia[];
 }
 
 export interface JustificativaOcorrencia {

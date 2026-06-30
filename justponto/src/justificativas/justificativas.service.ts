@@ -134,19 +134,31 @@ export class JustificativasService {
     return nova;
   }
 
+  // ── Helper: popular ocorrências em batch ────────────────────────
+  private async popularOcorrencias(justificativas: Justificativa[]): Promise<Justificativa[]> {
+    if (justificativas.length === 0) return justificativas;
+    const results = await Promise.all(
+      justificativas.map(j => this.justificativasRepo.findOcorrenciasByJustificativaId(j.id)),
+    );
+    return justificativas.map((j, i) => ({ ...j, ocorrencias: results[i] }));
+  }
+
   // ── Colaborador: ver as próprias justificativas ───────────────
   async listarMinhas(colaboradorId: string): Promise<Justificativa[]> {
-    return this.justificativasRepo.findByColaboradorId(colaboradorId);
+    const lista = await this.justificativasRepo.findByColaboradorId(colaboradorId);
+    return this.popularOcorrencias(lista);
   }
 
   // ── Gerente: ver pendentes da equipe ──────────────────────────
   async listarPendentes(gerenteId: string): Promise<Justificativa[]> {
-    return this.justificativasRepo.findPendentesByGerenteId(gerenteId);
+    const lista = await this.justificativasRepo.findPendentesByGerenteId(gerenteId);
+    return this.popularOcorrencias(lista);
   }
 
   // ── RH/Direção: listar todas com filtros ──────────────────────
   async listarTodas(filtro: FiltroJustificativas): Promise<Justificativa[]> {
-    return this.justificativasRepo.findAll(filtro);
+    const lista = await this.justificativasRepo.findAll(filtro);
+    return this.popularOcorrencias(lista);
   }
 
   // ── Detalhe completo de uma justificativa ─────────────────────

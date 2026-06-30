@@ -24,6 +24,20 @@ const STATUS_LABEL: Record<string, string> = {
   pendente: 'Pendente', aprovada: 'Aprovada', reprovada: 'Reprovada',
 };
 
+const OCORRENCIA_LABELS: Record<string, string> = {
+  entrada: 'Entrada', saida_almoco: 'Saida Almoco', retorno_almoco: 'Retorno Almoco', saida: 'Saida', dia_inteiro: 'Dia Inteiro',
+};
+
+function formatOcorrenciaHorario(j: Justificativa): string {
+  if (j.ocorrencias && j.ocorrencias.length > 0) {
+    return j.ocorrencias.map(o => {
+      const label = OCORRENCIA_LABELS[o.tipoOcorrencia] || o.tipoOcorrencia;
+      return o.horarioCorreto ? `${label} - ${o.horarioCorreto}` : label;
+    }).join(' / ');
+  }
+  return j.periodo === 'dia_inteiro' ? 'Dia inteiro' : `${j.horaInicio || ''} – ${j.horaFim || ''}`;
+}
+
 export default function RhPage() {
   const [justificativas, setJustificativas] = useState<Justificativa[]>([]);
   const [tipos, setTipos] = useState<TipoOcorrencia[]>([]);
@@ -154,7 +168,7 @@ export default function RhPage() {
                     <th>Data</th>
                     <th>Colaborador</th>
                     <th>Motivo</th>
-                    <th>Periodo</th>
+                    <th>Ocorrencia / Horario</th>
                     <th>Status</th>
                     <th>Aprovado por</th>
                     <th>Data/Hora Aprovacao</th>
@@ -170,7 +184,7 @@ export default function RhPage() {
                         <td className="td-strong">{formatData(j.dataOcorrencia)}</td>
                         <td className="td-strong">{nomeColaborador(j.colaboradorId)}</td>
                         <td>{tipo?.nome ?? '—'}</td>
-                        <td>{j.periodo === 'dia_inteiro' ? 'Dia inteiro' : `${j.horaInicio} – ${j.horaFim}`}</td>
+                        <td>{formatOcorrenciaHorario(j)}</td>
                         <td><span className={`badge badge-${j.status}`}>{STATUS_LABEL[j.status]}</span></td>
                         <td className="td-strong" style={{ fontSize: 13 }}>{nomeAprovador(j.aprovadorId)}</td>
                         <td className="td-muted" style={{ fontSize: 12 }}>{formatDataHora(j.avaliadoEm)}</td>
