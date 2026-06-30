@@ -111,8 +111,9 @@ export function JustificativaDetalheModal({ justificativaId, onClose, podeAvalia
               {/* Ocorrências */}
               {detalhe.ocorrencias && detalhe.ocorrencias.length > 0 && (
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--slate-600)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Horario Correto
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, padding: '0 14px' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--slate-400)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ocorrencia</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--slate-400)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Horario Correto</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {detalhe.ocorrencias.map(o => (

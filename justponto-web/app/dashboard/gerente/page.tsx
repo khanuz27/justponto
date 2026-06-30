@@ -134,7 +134,7 @@ export default function GerentePage() {
                     <th>Data</th>
                     <th>Colaborador</th>
                     <th>Motivo</th>
-                    <th>Horario Correto</th>
+                    <th>Ocorrencia / Horario Correto</th>
                     <th>Descrição</th>
                     <th>Anexo</th>
                     <th>Enviado em</th>
@@ -202,7 +202,7 @@ export default function GerentePage() {
                       <div style={{ fontWeight: 600 }}>{formatData(selecionada.dataOcorrencia)}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 11, color: 'var(--slate-400)' }}>Horario Correto</div>
+                      <div style={{ fontSize: 11, color: 'var(--slate-400)' }}>Ocorrencia / Horario Correto</div>
                       <div style={{ fontWeight: 600 }}>{formatOcorrenciaHorario(selecionada)}</div>
                     </div>
                   </div>

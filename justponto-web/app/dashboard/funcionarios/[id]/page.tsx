@@ -225,7 +225,7 @@ export default function FuncionarioDetalhe() {
                   <tr>
                     <th>Data da ocorrência</th>
                     <th>Motivo</th>
-                    <th>Horario Correto</th>
+                    <th>Ocorrencia / Horario Correto</th>
                     <th>Descrição</th>
                     <th>Status</th>
                     <th>Avaliado em</th>

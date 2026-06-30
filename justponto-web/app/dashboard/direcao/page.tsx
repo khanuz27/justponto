@@ -266,7 +266,7 @@ export default function DirecaoPage() {
                       <th>Data</th>
                       <th>Colaborador</th>
                       <th>Motivo</th>
-                      <th>Horario Correto</th>
+                      <th>Ocorrencia / Horario Correto</th>
                       <th>Status</th>
                       <th>Aprovado por</th>
                       <th>Data/Hora Aprovacao</th>
