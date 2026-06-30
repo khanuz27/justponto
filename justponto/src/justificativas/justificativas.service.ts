@@ -255,34 +255,42 @@ export class JustificativasService {
     colaboradorId: string,
     tipoNome: string,
   ): Promise<void> {
+    this.logger.log(`[NOTIF] Iniciando notificação para justificativa ${justificativaId}`);
+
     const colaborador = await this.usuariosRepo.findById(colaboradorId);
-    if (!colaborador) return;
+    if (!colaborador) {
+      this.logger.warn(`[NOTIF] Colaborador ${colaboradorId} não encontrado`);
+      return;
+    }
 
     const gerentes = await this.usuariosRepo.findByPerfil(PerfilUsuario.GERENTE);
+    this.logger.log(`[NOTIF] Encontrados ${gerentes.length} gerente(s): ${gerentes.map(g => g.email).join(', ')}`);
     if (gerentes.length === 0) return;
 
     await Promise.all(gerentes.map(async (gerente) => {
-      const notificacao = await this.notificacoesRepo.create({
-        justificativaId,
-        destinatarioId: gerente.id,
-        canal: 'email',
-        assunto: 'Nova Justificativa Registrada',
-        enviadoEm: undefined,
-        statusEnvio: 'pendente',
-        erro: undefined,
-      });
+      try {
+        this.logger.log(`[NOTIF] Enviando email para ${gerente.email}...`);
 
-      const resultado = await this.emailService.enviar({
-        para: gerente.email,
-        assunto: 'Nova Justificativa Registrada',
-        corpo: `Atencao, uma nova justificativa de ponto foi registrada pelo colaborador ${colaborador.nome}.\n\nAnalise para aprovacao ou reprovacao.`,
-      });
+        const resultado = await this.emailService.enviar({
+          para: gerente.email,
+          assunto: 'Nova Justificativa Registrada',
+          corpo: `Atencao, uma nova justificativa de ponto foi registrada pelo colaborador ${colaborador.nome}.\n\nAnalise para aprovacao ou reprovacao.`,
+        });
 
-      await this.notificacoesRepo.update(notificacao.id, {
-        statusEnvio: resultado.sucesso ? 'enviado' : 'falha',
-        enviadoEm: resultado.sucesso ? new Date() : undefined,
-        erro: resultado.erro,
-      });
+        this.logger.log(`[NOTIF] Resultado para ${gerente.email}: sucesso=${resultado.sucesso}, erro=${resultado.erro || 'nenhum'}`);
+
+        await this.notificacoesRepo.create({
+          justificativaId,
+          destinatarioId: gerente.id,
+          canal: 'email',
+          assunto: 'Nova Justificativa Registrada',
+          enviadoEm: resultado.sucesso ? new Date() : undefined,
+          statusEnvio: resultado.sucesso ? 'enviado' : 'falha',
+          erro: resultado.erro,
+        });
+      } catch (err: any) {
+        this.logger.error(`[NOTIF] Erro ao enviar para ${gerente.email}: ${err.message}`);
+      }
     }));
   }
 }
