@@ -260,7 +260,7 @@ export class JustificativasService {
       justificativaId,
       destinatarioId: gerente.id,
       canal: 'email',
-      assunto: `[JustPonto] Nova justificativa de ${colaborador.nome}`,
+      assunto: 'Nova Justificativa Registrada',
       enviadoEm: undefined,
       statusEnvio: 'pendente',
       erro: undefined,
@@ -268,8 +268,8 @@ export class JustificativasService {
 
     const resultado = await this.emailService.enviar({
       para: gerente.email,
-      assunto: `[JustPonto] Nova justificativa de ${colaborador.nome}`,
-      corpo: `Olá ${gerente.nome},\n\n${colaborador.nome} registrou uma nova justificativa.\nMotivo: ${tipoNome}\n\nAcesse o sistema para avaliar.`,
+      assunto: 'Nova Justificativa Registrada',
+      corpo: `Atencao, uma nova justificativa de ponto foi registrada pelo colaborador ${colaborador.nome}.\n\nAnalise para aprovacao ou reprovacao.`,
     });
 
     await this.notificacoesRepo.update(notificacao.id, {

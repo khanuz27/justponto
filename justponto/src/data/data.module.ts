@@ -29,6 +29,7 @@ import { AnexosSupabaseRepositorio }            from './supabase/anexos.supabase
 import { HistoricoSupabaseRepositorio }         from './supabase/historico.supabase.repositorio';
 import { NotificacoesSupabaseRepositorio }      from './supabase/notificacoes.supabase.repositorio';
 import { StorageSupabaseService }               from './supabase/storage.supabase.service';
+import { EmailSmtpService }                     from './supabase/email.smtp.service';
 
 function criarProvedor(token: string, mockClass: any, supabaseClass?: any) {
   return {
@@ -54,7 +55,7 @@ function criarProvedor(token: string, mockClass: any, supabaseClass?: any) {
     criarProvedor(HISTORICO_REPO,        HistoricoMockRepositorio,       HistoricoSupabaseRepositorio),
     criarProvedor(NOTIFICACOES_REPO,     NotificacoesMockRepositorio,    NotificacoesSupabaseRepositorio),
     criarProvedor(STORAGE_SERVICE,       StorageMockService,             StorageSupabaseService),
-    criarProvedor(EMAIL_SERVICE,         EmailFakeService),
+    criarProvedor(EMAIL_SERVICE,         EmailFakeService,               EmailSmtpService),
     // Permite injetar StorageMockService diretamente (mesma instância singleton)
     { provide: StorageMockService, useExisting: STORAGE_SERVICE },
   ],
